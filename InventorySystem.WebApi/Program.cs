@@ -1,4 +1,5 @@
 using InventorySystem.Application.Interfaces;
+using InventorySystem.Application.Services;
 using InventorySystem.Infrastructure.Data;
 using InventorySystem.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
@@ -19,6 +20,9 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // Register repositories and unit of work
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+// Register application services
+builder.Services.AddScoped<IWarehouseService, WarehouseService>();
 
 // CORS
 builder.Services.AddCors(options =>

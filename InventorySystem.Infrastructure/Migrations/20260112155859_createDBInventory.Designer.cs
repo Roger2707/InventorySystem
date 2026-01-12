@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace InventorySystem.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260105065723_createFirstModel")]
-    partial class createFirstModel
+    [Migration("20260112155859_createDBInventory")]
+    partial class createDBInventory
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -48,10 +48,14 @@ namespace InventorySystem.Infrastructure.Migrations
                         .HasColumnType("nvarchar(500)");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
 
                     b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
 
                     b.Property<int?>("ManagerId")
                         .HasColumnType("int");
@@ -62,7 +66,6 @@ namespace InventorySystem.Infrastructure.Migrations
 
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
-                        .IsRequired()
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
 
@@ -81,7 +84,12 @@ namespace InventorySystem.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Warehouses");
+                    b.HasIndex("IsDeleted");
+
+                    b.HasIndex("WarehouseCode")
+                        .IsUnique();
+
+                    b.ToTable("Warehouses", (string)null);
                 });
 #pragma warning restore 612, 618
         }

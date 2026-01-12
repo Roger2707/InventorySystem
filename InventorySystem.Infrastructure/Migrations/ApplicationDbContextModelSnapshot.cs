@@ -45,10 +45,14 @@ namespace InventorySystem.Infrastructure.Migrations
                         .HasColumnType("nvarchar(500)");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
 
                     b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
 
                     b.Property<int?>("ManagerId")
                         .HasColumnType("int");
@@ -59,7 +63,6 @@ namespace InventorySystem.Infrastructure.Migrations
 
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
-                        .IsRequired()
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
 
@@ -78,7 +81,12 @@ namespace InventorySystem.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Warehouses");
+                    b.HasIndex("IsDeleted");
+
+                    b.HasIndex("WarehouseCode")
+                        .IsUnique();
+
+                    b.ToTable("Warehouses", (string)null);
                 });
 #pragma warning restore 612, 618
         }
