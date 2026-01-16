@@ -1,0 +1,57 @@
+using InventorySystem.Application.Interfaces;
+using InventorySystem.Domain.Entities.Identity;
+using InventorySystem.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
+
+namespace InventorySystem.Infrastructure.Repositories.Identity;
+
+public class UserRepository : Repository<User>, IUserRepository
+{
+    public UserRepository(ApplicationDbContext context)
+        : base(context)
+    {
+    }
+
+    public async Task<User?> GetByUsernameAsync(string username, CancellationToken cancellationToken = default)
+    {
+        return await _dbSet
+            .FirstOrDefaultAsync(u => u.Username == username, cancellationToken);
+    }
+
+    public async Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default)
+    {
+        return await _dbSet
+            .FirstOrDefaultAsync(u => u.Email == email, cancellationToken);
+    }
+
+    public async Task<bool> ExistsByUsernameAsync(string username, CancellationToken cancellationToken = default)
+    {
+        return await _dbSet
+            .AnyAsync(u => u.Username == username, cancellationToken);
+    }
+
+    public async Task<bool> ExistsByEmailAsync(string email, CancellationToken cancellationToken = default)
+    {
+        return await _dbSet
+            .AnyAsync(u => u.Email == email, cancellationToken);
+    }
+
+    public async Task<User?> GetWithRolesAndPermissionsAsync(int userId, CancellationToken cancellationToken = default)
+    {
+        return await _dbSet
+            .Include(u => u.UserRoles)
+                .ThenInclude(ur => ur.Role)
+                    .ThenInclude(r => r.RolePermissions)
+                        .ThenInclude(rp => rp.Permission)
+            .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+    }
+
+    public async Task<IEnumerable<User>> GetActiveUsersAsync(CancellationToken cancellationToken = default)
+    {
+        return await _dbSet
+            .Where(u => u.IsActive == true)
+            .OrderBy(u => u.FullName)
+            .ToListAsync(cancellationToken);
+    }
+}
+

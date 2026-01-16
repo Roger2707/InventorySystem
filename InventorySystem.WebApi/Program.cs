@@ -2,6 +2,11 @@ using InventorySystem.Application.Interfaces;
 using InventorySystem.Application.Services;
 using InventorySystem.Infrastructure.Data;
 using InventorySystem.Infrastructure.Repositories;
+using InventorySystem.Infrastructure.Services;
+using InventorySystem.WebApi.Handlers;
+using InventorySystem.WebApi.Middleware;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -24,6 +29,33 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 // Register application services
 builder.Services.AddScoped<IWarehouseService, WarehouseService>();
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IRoleService, RoleService>();
+
+// Register Identity services
+builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
+builder.Services.AddScoped<IJwtService, JwtService>();
+builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
+builder.Services.AddScoped<IAuthorizationService, AuthorizationService>();
+
+// Configure Authentication (Custom JWT Handler)
+builder.Services.AddAuthentication("JwtAuthentication")
+    .AddScheme<AuthenticationSchemeOptions, JwtAuthenticationHandler>("JwtAuthentication", options => { });
+
+// Configure Authorization with Permission policies
+builder.Services.AddAuthorization(options =>
+{
+    // Default policy requires authentication
+    options.DefaultPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+});
+
+// Register Permission Authorization Handler
+builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
+
+// Add policy provider for dynamic permission policies
+builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
 
 // CORS
 builder.Services.AddCors(options =>
@@ -47,7 +79,11 @@ app.UseSwaggerUI(c =>
 });
 
 app.UseCors("AllowAll");
+
+// Authentication must come before Authorization
+app.UseAuthentication();
 app.UseAuthorization();
+
 app.MapControllers();
 
 

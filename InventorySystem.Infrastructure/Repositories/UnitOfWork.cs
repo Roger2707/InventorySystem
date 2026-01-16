@@ -1,5 +1,6 @@
 using InventorySystem.Application.Interfaces;
 using InventorySystem.Infrastructure.Data;
+using InventorySystem.Infrastructure.Repositories.Identity;
 using Microsoft.EntityFrameworkCore.Storage;
 
 namespace InventorySystem.Infrastructure.Repositories;
@@ -10,6 +11,9 @@ public class UnitOfWork : IUnitOfWork
     private readonly Dictionary<Type, object> _repositories;
     private IDbContextTransaction? _transaction;
     private IWarehouseRepository? _warehouseRepository;
+    private IUserRepository? _userRepository;
+    private IRoleRepository? _roleRepository;
+    private IPermissionRepository? _permissionRepository;
 
     public UnitOfWork(ApplicationDbContext context)
     {
@@ -40,6 +44,42 @@ public class UnitOfWork : IUnitOfWork
                 _warehouseRepository = new WarehouseRepository(_context);
             }
             return _warehouseRepository;
+        }
+    }
+
+    public IUserRepository UserRepository
+    {
+        get
+        {
+            if (_userRepository == null)
+            {
+                _userRepository = new UserRepository(_context);
+            }
+            return _userRepository;
+        }
+    }
+
+    public IRoleRepository RoleRepository
+    {
+        get
+        {
+            if (_roleRepository == null)
+            {
+                _roleRepository = new RoleRepository(_context);
+            }
+            return _roleRepository;
+        }
+    }
+
+    public IPermissionRepository PermissionRepository
+    {
+        get
+        {
+            if (_permissionRepository == null)
+            {
+                _permissionRepository = new PermissionRepository(_context);
+            }
+            return _permissionRepository;
         }
     }
 

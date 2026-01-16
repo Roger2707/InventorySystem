@@ -1,11 +1,19 @@
 using Microsoft.EntityFrameworkCore;
 using InventorySystem.Domain.Entities;
+using InventorySystem.Domain.Entities.Identity;
 
 namespace InventorySystem.Infrastructure.Data;
 
 public class ApplicationDbContext : DbContext
 {
     public DbSet<Warehouse> Warehouses { get; set; }
+    
+    // Identity entities
+    public DbSet<User> Users { get; set; }
+    public DbSet<Role> Roles { get; set; }
+    public DbSet<Permission> Permissions { get; set; }
+    public DbSet<UserRole> UserRoles { get; set; }
+    public DbSet<RolePermission> RolePermissions { get; set; }
 
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
         : base(options)
