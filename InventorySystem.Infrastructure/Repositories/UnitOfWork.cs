@@ -7,11 +7,40 @@ namespace InventorySystem.Infrastructure.Repositories;
 public class UnitOfWork : IUnitOfWork
 {
     private readonly ApplicationDbContext _context;
+    private readonly Dictionary<Type, object> _repositories;
     private IDbContextTransaction? _transaction;
+    private IWarehouseRepository? _warehouseRepository;
 
     public UnitOfWork(ApplicationDbContext context)
     {
         _context = context;
+        _repositories = new Dictionary<Type, object>();
+    }
+
+    public IRepository<T> GetRepository<T>() where T : class
+    {
+        var type = typeof(T);
+        
+        if (_repositories.ContainsKey(type))
+        {
+            return (IRepository<T>)_repositories[type];
+        }
+
+        var repository = new Repository<T>(_context);
+        _repositories[type] = repository;
+        return repository;
+    }
+
+    public IWarehouseRepository WarehouseRepository
+    {
+        get
+        {
+            if (_warehouseRepository == null)
+            {
+                _warehouseRepository = new WarehouseRepository(_context);
+            }
+            return _warehouseRepository;
+        }
     }
 
     public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

@@ -16,9 +16,17 @@ public class Repository<T> : IRepository<T> where T : class
         _dbSet = context.Set<T>();
     }
 
-    public virtual async Task<T?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
+    public virtual async Task<T?> GetByIdAsync(object id, CancellationToken cancellationToken = default)
     {
-        return await _dbSet.FindAsync(new object[] { id }, cancellationToken);
+        if (id == null)
+            throw new ArgumentNullException(nameof(id));
+
+        // Handle composite keys (array/params)
+        var keyValues = id is object[] compositeKey 
+            ? compositeKey 
+            : new[] { id };
+
+        return await _dbSet.FindAsync(keyValues, cancellationToken);
     }
 
     public virtual async Task<IEnumerable<T>> GetAllAsync(CancellationToken cancellationToken = default)

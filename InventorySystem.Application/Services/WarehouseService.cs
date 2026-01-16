@@ -7,20 +7,16 @@ namespace InventorySystem.Application.Services;
 
 public class WarehouseService : IWarehouseService
 {
-    private readonly IRepository<Warehouse> _repository;
     private readonly IUnitOfWork _unitOfWork;
 
-    public WarehouseService(
-        IRepository<Warehouse> repository,
-        IUnitOfWork unitOfWork)
+    public WarehouseService(IUnitOfWork unitOfWork)
     {
-        _repository = repository;
         _unitOfWork = unitOfWork;
     }
 
     public async Task<Result<WarehouseDto>> GetByIdAsync(int id, CancellationToken cancellationToken = default)
     {
-        var warehouse = await _repository.GetByIdAsync(id, cancellationToken);
+        var warehouse = await _unitOfWork.WarehouseRepository.GetByIdAsync(id, cancellationToken);
         
         if (warehouse == null)
         {
@@ -33,7 +29,7 @@ public class WarehouseService : IWarehouseService
 
     public async Task<Result<IEnumerable<WarehouseDto>>> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        var warehouses = await _repository.GetAllAsync(cancellationToken);
+        var warehouses = await _unitOfWork.WarehouseRepository.GetAllAsync(cancellationToken);
         var warehouseDtos = warehouses.Select(MapToDto);
         return Result<IEnumerable<WarehouseDto>>.Success(warehouseDtos);
     }
@@ -41,17 +37,13 @@ public class WarehouseService : IWarehouseService
     public async Task<Result<WarehouseDto>> CreateAsync(CreateWarehouseDto createDto, CancellationToken cancellationToken = default)
     {
         // Check if warehouse code already exists
-        var existingWarehouse = await _repository.FirstOrDefaultAsync(
-            w => w.WarehouseCode == createDto.WarehouseCode, 
-            cancellationToken);
-
-        if (existingWarehouse != null)
+        if (await _unitOfWork.WarehouseRepository.ExistsByCodeAsync(createDto.WarehouseCode, cancellationToken))
         {
             return Result<WarehouseDto>.Failure($"Warehouse with code '{createDto.WarehouseCode}' already exists.");
         }
 
         var warehouse = MapToEntity(createDto);
-        await _repository.AddAsync(warehouse, cancellationToken);
+        await _unitOfWork.WarehouseRepository.AddAsync(warehouse, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         var warehouseDto = MapToDto(warehouse);
@@ -60,7 +52,7 @@ public class WarehouseService : IWarehouseService
 
     public async Task<Result<WarehouseDto>> UpdateAsync(int id, UpdateWarehouseDto updateDto, CancellationToken cancellationToken = default)
     {
-        var warehouse = await _repository.GetByIdAsync(id, cancellationToken);
+        var warehouse = await _unitOfWork.WarehouseRepository.GetByIdAsync(id, cancellationToken);
         
         if (warehouse == null)
         {
@@ -70,18 +62,15 @@ public class WarehouseService : IWarehouseService
         // Check if warehouse code is being changed and if new code already exists
         if (warehouse.WarehouseCode != updateDto.WarehouseCode)
         {
-            var existingWarehouse = await _repository.FirstOrDefaultAsync(
-                w => w.WarehouseCode == updateDto.WarehouseCode && w.Id != id, 
-                cancellationToken);
-
-            if (existingWarehouse != null)
+            var existingWarehouse = await _unitOfWork.WarehouseRepository.GetByCodeAsync(updateDto.WarehouseCode, cancellationToken);
+            if (existingWarehouse != null && existingWarehouse.Id != id)
             {
                 return Result<WarehouseDto>.Failure($"Warehouse with code '{updateDto.WarehouseCode}' already exists.");
             }
         }
 
         MapToEntity(updateDto, warehouse);
-        await _repository.UpdateAsync(warehouse, cancellationToken);
+        await _unitOfWork.WarehouseRepository.UpdateAsync(warehouse, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         var warehouseDto = MapToDto(warehouse);
@@ -90,7 +79,7 @@ public class WarehouseService : IWarehouseService
 
     public async Task<Result> DeleteAsync(int id, CancellationToken cancellationToken = default)
     {
-        var warehouse = await _repository.GetByIdAsync(id, cancellationToken);
+        var warehouse = await _unitOfWork.WarehouseRepository.GetByIdAsync(id, cancellationToken);
         
         if (warehouse == null)
         {
@@ -99,7 +88,7 @@ public class WarehouseService : IWarehouseService
 
         // Soft delete
         warehouse.IsDeleted = true;
-        await _repository.UpdateAsync(warehouse, cancellationToken);
+        await _unitOfWork.WarehouseRepository.UpdateAsync(warehouse, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return Result.Success();
@@ -107,7 +96,7 @@ public class WarehouseService : IWarehouseService
 
     public async Task<Result<bool>> ExistsAsync(int id, CancellationToken cancellationToken = default)
     {
-        var exists = await _repository.ExistsAsync(w => w.Id == id, cancellationToken);
+        var exists = await _unitOfWork.WarehouseRepository.ExistsAsync(w => w.Id == id, cancellationToken);
         return Result<bool>.Success(exists);
     }
 

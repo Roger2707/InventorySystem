@@ -17,8 +17,9 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
 
-// Register repositories and unit of work
-builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+// Register unit of work
+// Note: Repositories are created by UnitOfWork directly (not through DI)
+// This ensures all repositories use the same DbContext instance as UnitOfWork
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 // Register application services
