@@ -1,5 +1,6 @@
 using InventorySystem.Application.DTOs;
 using InventorySystem.Application.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace InventorySystem.WebApi.Controllers;
@@ -54,6 +55,7 @@ public class WarehouseController : ControllerBase
     /// Create a new warehouse
     /// </summary>
     [HttpPost]
+    [Authorize(Policy = "SuperAdminOnly")]
     [ProducesResponseType(typeof(WarehouseDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<WarehouseDto>> Create([FromBody] CreateWarehouseDto createDto, CancellationToken cancellationToken = default)
@@ -105,6 +107,7 @@ public class WarehouseController : ControllerBase
     /// Delete a warehouse (soft delete)
     /// </summary>
     [HttpDelete("{id}")]
+    [Authorize(Policy = "ManagerOrAbove")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult> Delete(int id, CancellationToken cancellationToken = default)

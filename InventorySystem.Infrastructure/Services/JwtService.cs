@@ -1,6 +1,5 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Security.Cryptography;
 using System.Text;
 using InventorySystem.Application.Interfaces;
 using InventorySystem.Domain.Entities.Identity;
@@ -83,7 +82,16 @@ public class JwtService : IJwtService
             };
 
             var principal = tokenHandler.ValidateToken(token, validationParameters, out SecurityToken validatedToken);
-            return principal;
+
+            // Optional: Check the token algorithm
+            if (validatedToken is JwtSecurityToken jwtToken &&
+                jwtToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256,
+                    StringComparison.InvariantCultureIgnoreCase))
+            {
+                return principal;
+            }
+
+            return null;
         }
         catch
         {

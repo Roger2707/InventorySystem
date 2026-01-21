@@ -1,6 +1,4 @@
-﻿using InventorySystem.Domain.Entities;
-
-namespace InventorySystem.Domain.Entities.Identity
+﻿namespace InventorySystem.Domain.Entities.Identity
 {
     public class Permission : BaseEntity
     {

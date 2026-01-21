@@ -93,7 +93,7 @@ public class AuthenticationService : IAuthenticationService
             Email = registerDto.Email,
             PhoneNumber = registerDto.PhoneNumber,
             Address = registerDto.Address,
-            WarehouseId = registerDto.WarehouseId,
+            WarehouseId = registerDto.WarehouseId == 0 ? null : registerDto.WarehouseId,
             IsActive = true
         };
 
