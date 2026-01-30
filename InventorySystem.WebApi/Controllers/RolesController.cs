@@ -24,12 +24,10 @@ public class RolesController : ControllerBase
     public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
     {
         var result = await _roleService.GetAllAsync(cancellationToken);
-
         if (!result.IsSuccess)
         {
             return BadRequest(new { message = result.ErrorMessage });
         }
-
         return Ok(result.Data);
     }
 

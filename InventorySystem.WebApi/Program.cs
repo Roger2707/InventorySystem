@@ -59,6 +59,7 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IWarehouseService, WarehouseService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IRoleService, RoleService>();
+builder.Services.AddScoped<IPermissionService, PermissionService>();
 
 // Register Identity services
 builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
@@ -97,10 +98,10 @@ builder.Services.AddAuthorization(options =>
     //    policy.Requirements.Add(new PermissionRequirement("Warehouse.Delete")));
 
     options.AddPolicy("SuperAdminOnly", policy =>
-        policy.RequireRole("SuperAdmin"));
+        policy.RequireRole("Super_Admin"));
 
     options.AddPolicy("ManagerOrAbove", policy =>
-        policy.RequireRole("SuperAdmin", "Manager"));
+        policy.RequireRole("Super_Admin", "Warehouse_Manager"));
 });
 
 #endregion
