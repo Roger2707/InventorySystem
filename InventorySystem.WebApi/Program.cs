@@ -3,6 +3,7 @@ using InventorySystem.Application.Services;
 using InventorySystem.Infrastructure.Data;
 using InventorySystem.Infrastructure.Repositories;
 using InventorySystem.Infrastructure.Services;
+using InventorySystem.WebApi.Handlers;
 using InventorySystem.WebApi.Middleware;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
@@ -88,38 +89,30 @@ builder.Services.AddAuthorization(options =>
         .Build();
 
     // 2. Custom policies cho [Authorize(Policy = "...")]
-    //options.AddPolicy("CreateWarehouse", policy =>
-    //    policy.Requirements.Add(new PermissionRequirement("Warehouse.Create")));
-
-    //options.AddPolicy("UpdateWarehouse", policy =>
-    //    policy.Requirements.Add(new PermissionRequirement("Warehouse.Update")));
-
-    //options.AddPolicy("DeleteWarehouse", policy =>
-    //    policy.Requirements.Add(new PermissionRequirement("Warehouse.Delete")));
-
     options.AddPolicy("SuperAdminOnly", policy =>
         policy.RequireRole("Super_Admin"));
 
     options.AddPolicy("ManagerOrAbove", policy =>
         policy.RequireRole("Super_Admin", "Warehouse_Manager"));
+
+    options.AddPolicy("WarehouseAccess", policy =>
+        policy.Requirements.Add(new WarehouseAccessRequirement()));
 });
 
 #endregion
 
-//// Register Permission Authorization Handler
-//builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
-
-//// Add policy provider for dynamic permission policies
-//builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
+// Register Permission Authorization Handler
+builder.Services.AddScoped<IAuthorizationHandler, WarehouseAccessHandler>();
 
 // CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.AllowAnyOrigin()
-              .AllowAnyMethod()
-              .AllowAnyHeader();
+        policy
+        .AllowAnyOrigin()
+        .AllowAnyMethod()
+        .AllowAnyHeader();
     });
 });
 

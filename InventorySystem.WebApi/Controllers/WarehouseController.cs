@@ -7,6 +7,7 @@ namespace InventorySystem.WebApi.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class WarehouseController : ControllerBase
 {
     private readonly IWarehouseService _warehouseService;
@@ -16,11 +17,8 @@ public class WarehouseController : ControllerBase
         _warehouseService = warehouseService;
     }
 
-    /// <summary>
-    /// Get all warehouses
-    /// </summary>
     [HttpGet]
-    [ProducesResponseType(typeof(IEnumerable<WarehouseDto>), StatusCodes.Status200OK)]
+    [Authorize(Policy = "SuperAdminOnly")]
     public async Task<ActionResult<IEnumerable<WarehouseDto>>> GetAll(CancellationToken cancellationToken = default)
     {
         var result = await _warehouseService.GetAllAsync(cancellationToken);
@@ -33,12 +31,8 @@ public class WarehouseController : ControllerBase
         return Ok(result.Data);
     }
 
-    /// <summary>
-    /// Get warehouse by ID
-    /// </summary>
     [HttpGet("{id}")]
-    [ProducesResponseType(typeof(WarehouseDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [Authorize(Policy = "WarehouseAccess")]
     public async Task<ActionResult<WarehouseDto>> GetById(int id, CancellationToken cancellationToken = default)
     {
         var result = await _warehouseService.GetByIdAsync(id, cancellationToken);
@@ -51,13 +45,8 @@ public class WarehouseController : ControllerBase
         return Ok(result.Data);
     }
 
-    /// <summary>
-    /// Create a new warehouse
-    /// </summary>
     [HttpPost]
     [Authorize(Policy = "SuperAdminOnly")]
-    [ProducesResponseType(typeof(WarehouseDto), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<WarehouseDto>> Create([FromBody] CreateWarehouseDto createDto, CancellationToken cancellationToken = default)
     {
         if (!ModelState.IsValid)
@@ -75,13 +64,8 @@ public class WarehouseController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = result.Data!.Id }, result.Data);
     }
 
-    /// <summary>
-    /// Update an existing warehouse
-    /// </summary>
     [HttpPut("{id}")]
-    [ProducesResponseType(typeof(WarehouseDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [Authorize(Policy = "WarehouseAccess")]
     public async Task<ActionResult<WarehouseDto>> Update(int id, [FromBody] UpdateWarehouseDto updateDto, CancellationToken cancellationToken = default)
     {
         if (!ModelState.IsValid)
@@ -103,13 +87,8 @@ public class WarehouseController : ControllerBase
         return Ok(result.Data);
     }
 
-    /// <summary>
-    /// Delete a warehouse (soft delete)
-    /// </summary>
     [HttpDelete("{id}")]
-    [Authorize(Policy = "ManagerOrAbove")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [Authorize(Policy = "WarehouseAccess")]
     public async Task<ActionResult> Delete(int id, CancellationToken cancellationToken = default)
     {
         var result = await _warehouseService.DeleteAsync(id, cancellationToken);
@@ -122,11 +101,8 @@ public class WarehouseController : ControllerBase
         return NoContent();
     }
 
-    /// <summary>
-    /// Check if warehouse exists
-    /// </summary>
     [HttpGet("{id}/exists")]
-    [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
+    [Authorize(Policy = "SuperAdminOnly")]
     public async Task<ActionResult<bool>> Exists(int id, CancellationToken cancellationToken = default)
     {
         var result = await _warehouseService.ExistsAsync(id, cancellationToken);
