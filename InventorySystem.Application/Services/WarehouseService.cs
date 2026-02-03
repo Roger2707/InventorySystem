@@ -110,7 +110,6 @@ public class WarehouseService : IWarehouseService
             WarehouseName = warehouse.WarehouseName,
             Address = warehouse.Address,
             PhoneNumber = warehouse.PhoneNumber,
-            Area = warehouse.Area,
             ManagerId = warehouse.ManagerId,
             IsActive = warehouse.IsActive,
             Description = warehouse.Description,
@@ -127,7 +126,6 @@ public class WarehouseService : IWarehouseService
             WarehouseName = createDto.WarehouseName,
             Address = createDto.Address,
             PhoneNumber = createDto.PhoneNumber,
-            Area = createDto.Area,
             ManagerId = createDto.ManagerId,
             IsActive = createDto.IsActive,
             Description = createDto.Description
@@ -140,7 +138,6 @@ public class WarehouseService : IWarehouseService
         warehouse.WarehouseName = updateDto.WarehouseName;
         warehouse.Address = updateDto.Address;
         warehouse.PhoneNumber = updateDto.PhoneNumber;
-        warehouse.Area = updateDto.Area;
         warehouse.ManagerId = updateDto.ManagerId;
         warehouse.IsActive = updateDto.IsActive;
         warehouse.Description = updateDto.Description;

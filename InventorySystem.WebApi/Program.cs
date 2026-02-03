@@ -2,6 +2,7 @@
 using InventorySystem.Application.Services;
 using InventorySystem.Infrastructure.Data;
 using InventorySystem.Infrastructure.Repositories;
+using InventorySystem.Infrastructure.Seed;
 using InventorySystem.Infrastructure.Services;
 using InventorySystem.WebApi.Handlers;
 using InventorySystem.WebApi.Middleware;
@@ -26,7 +27,7 @@ builder.Services.AddSwaggerGen(options =>
         Scheme = "bearer",
         BearerFormat = "JWT",
         In = ParameterLocation.Header,
-        Description = "Nhập JWT token vào đây"
+        Description = "Input JWT Token here: "
     });
 
     options.AddSecurityRequirement(new OpenApiSecurityRequirement
@@ -134,12 +135,14 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-
-// Ensure database is created (or migrated)
+// Seed database
 using (var scope = app.Services.CreateScope())
 {
-    var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    context.Database.EnsureCreated();
+    var services = scope.ServiceProvider;
+    var db = services.GetRequiredService<ApplicationDbContext>();
+
+    db.Database.Migrate();
+    await SeedDataInit.SeedDataAsync(services);
 }
 
 app.Run();

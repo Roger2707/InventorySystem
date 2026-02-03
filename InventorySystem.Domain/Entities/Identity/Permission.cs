@@ -3,8 +3,8 @@
     public class Permission : BaseEntity
     {
         public string PermissionName { get; set; }
-        public string Module { get; set; } // Products, Warehouses, Import, Export...
-        public string Action { get; set; } // View, Create, Update, Delete, Approve
+        public string Module { get; set; } // Products, Warehouses
+        public string Action { get; set; } // View, Create, Update, Delete, Approve, Import, Export
         public string Description { get; set; }
 
         // Navigation

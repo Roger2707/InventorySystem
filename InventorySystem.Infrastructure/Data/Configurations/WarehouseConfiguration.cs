@@ -34,10 +34,6 @@ public class WarehouseConfiguration : BaseEntityConfiguration<Warehouse>
         builder.Property(w => w.PhoneNumber)
             .HasMaxLength(20);
 
-        // Area - Optional, decimal(18,2)
-        builder.Property(w => w.Area)
-            .HasColumnType("decimal(18,2)");
-
         // ManagerId - Optional
         builder.Property(w => w.ManagerId)
             .IsRequired(false);

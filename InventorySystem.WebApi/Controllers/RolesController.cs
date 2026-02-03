@@ -17,9 +17,6 @@ public class RolesController : ControllerBase
         _roleService = roleService;
     }
 
-    /// <summary>
-    /// Get all roles
-    /// </summary>
     [HttpGet]
     public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
     {
@@ -31,9 +28,6 @@ public class RolesController : ControllerBase
         return Ok(result.Data);
     }
 
-    /// <summary>
-    /// Get role by ID
-    /// </summary>
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id, CancellationToken cancellationToken)
     {
@@ -47,9 +41,6 @@ public class RolesController : ControllerBase
         return Ok(result.Data);
     }
 
-    /// <summary>
-    /// Create a new role
-    /// </summary>
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateRoleDto createDto, CancellationToken cancellationToken)
     {
@@ -63,9 +54,6 @@ public class RolesController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = result.Data!.Id }, result.Data);
     }
 
-    /// <summary>
-    /// Update a role
-    /// </summary>
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(int id, [FromBody] UpdateRoleDto updateDto, CancellationToken cancellationToken)
     {
@@ -79,9 +67,6 @@ public class RolesController : ControllerBase
         return Ok(result.Data);
     }
 
-    /// <summary>
-    /// Delete a role (soft delete)
-    /// </summary>
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {
@@ -93,22 +78,6 @@ public class RolesController : ControllerBase
         }
 
         return NoContent();
-    }
-
-    /// <summary>
-    /// Assign permissions to a role
-    /// </summary>
-    [HttpPost("{id}/permissions")]
-    public async Task<IActionResult> AssignPermissions(int id, [FromBody] List<int> permissionIds, CancellationToken cancellationToken)
-    {
-        var result = await _roleService.AssignPermissionsAsync(id, permissionIds, cancellationToken);
-
-        if (!result.IsSuccess)
-        {
-            return BadRequest(new { message = result.ErrorMessage });
-        }
-
-        return Ok(result.Data);
     }
 }
 

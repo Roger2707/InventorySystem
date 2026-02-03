@@ -1,5 +1,4 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
-using InventorySystem.Domain.Entities;
 
 namespace InventorySystem.Domain.Entities.Identity
 {

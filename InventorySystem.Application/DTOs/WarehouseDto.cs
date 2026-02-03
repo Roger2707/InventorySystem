@@ -7,7 +7,6 @@ public class WarehouseDto
     public string WarehouseName { get; set; } = string.Empty;
     public string? Address { get; set; }
     public string? PhoneNumber { get; set; }
-    public decimal? Area { get; set; }
     public int? ManagerId { get; set; }
     public bool IsActive { get; set; }
     public string? Description { get; set; }

@@ -71,12 +71,6 @@ public class RoleService : IRoleService
         await _unitOfWork.RoleRepository.AddAsync(role, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        // Assign permissions
-        if (createDto.PermissionIds.Any())
-        {
-            await AssignPermissionsInternalAsync(role.Id, createDto.PermissionIds, cancellationToken);
-        }
-
         var createdRole = await _unitOfWork.RoleRepository.GetWithPermissionsAsync(role.Id, cancellationToken);
         if (createdRole == null)
         {
@@ -106,13 +100,6 @@ public class RoleService : IRoleService
             role.Description = updateDto.Description;
 
         await _unitOfWork.RoleRepository.UpdateAsync(role, cancellationToken);
-
-        // Update permissions if provided
-        if (updateDto.PermissionIds != null)
-        {
-            await AssignPermissionsInternalAsync(id, updateDto.PermissionIds, cancellationToken);
-        }
-
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         var updatedRole = await _unitOfWork.RoleRepository.GetWithPermissionsAsync(id, cancellationToken);
@@ -145,67 +132,6 @@ public class RoleService : IRoleService
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return Result.Success();
-    }
-
-    public async Task<Result<RoleDto>> AssignPermissionsAsync(int roleId, List<int> permissionIds, CancellationToken cancellationToken = default)
-    {
-        var role = await _unitOfWork.RoleRepository.GetByIdAsync(roleId, cancellationToken);
-
-        if (role == null)
-        {
-            return Result<RoleDto>.Failure($"Role with ID {roleId} not found.");
-        }
-
-        await AssignPermissionsInternalAsync(roleId, permissionIds, cancellationToken);
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
-
-        var updatedRole = await _unitOfWork.RoleRepository.GetWithPermissionsAsync(roleId, cancellationToken);
-        if (updatedRole == null)
-        {
-            return Result<RoleDto>.Failure("Failed to assign permissions.");
-        }
-
-        var permissions = updatedRole.RolePermissions
-            .Select(rp => rp.Permission.PermissionName)
-            .Distinct()
-            .ToList();
-
-        var roleDto = MapToDto(updatedRole, permissions);
-        return Result<RoleDto>.Success(roleDto);
-    }
-
-    private async Task AssignPermissionsInternalAsync(int roleId, List<int> permissionIds, CancellationToken cancellationToken)
-    {
-        var role = await _unitOfWork.RoleRepository.GetWithPermissionsAsync(roleId, cancellationToken);
-        if (role == null) return;
-
-        // Remove existing permissions
-        var existingRolePermissions = role.RolePermissions.ToList();
-        foreach (var rolePermission in existingRolePermissions)
-        {
-            var rolePermissionEntity = await _unitOfWork.GetRepository<RolePermission>()
-                .FirstOrDefaultAsync(rp => rp.RoleId == roleId && rp.PermissionId == rolePermission.PermissionId, cancellationToken);
-            if (rolePermissionEntity != null)
-            {
-                await _unitOfWork.GetRepository<RolePermission>().DeleteAsync(rolePermissionEntity, cancellationToken);
-            }
-        }
-
-        // Add new permissions
-        foreach (var permissionId in permissionIds)
-        {
-            var permission = await _unitOfWork.PermissionRepository.GetByIdAsync(permissionId, cancellationToken);
-            if (permission != null)
-            {
-                var rolePermission = new RolePermission
-                {
-                    RoleId = roleId,
-                    PermissionId = permissionId,
-                    GrantedAt = DateTime.UtcNow
-                };
-                await _unitOfWork.GetRepository<RolePermission>().AddAsync(rolePermission, cancellationToken);
-            }
-        }
     }
 
     private static RoleDto MapToDto(Role role, List<string> permissions)
