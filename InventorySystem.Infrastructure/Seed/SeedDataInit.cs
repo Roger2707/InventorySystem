@@ -23,6 +23,9 @@ namespace InventorySystem.Infrastructure.Seed
             if(await context.Users.AnyAsync() && await context.Roles.AnyAsync() && !await context.UserRoles.AnyAsync())
                 await SeedUserRoleAsync(context);
 
+            if (!await context.Permissions.AnyAsync())
+                await SeedPermissionsAsync(context);
+
             if (!await context.Warehouses.AnyAsync())
                 await SeedWarehouseAsync(context);
         }
@@ -251,6 +254,117 @@ namespace InventorySystem.Infrastructure.Seed
 
             foreach (var warehouse in warehouses)
                 context.Warehouses.Add(warehouse);
+
+            await context.SaveChangesAsync();
+        }
+
+        private static async Task SeedPermissionsAsync(ApplicationDbContext context)
+        {
+            var permissions = new List<Permission>
+            {
+                // Warehouse Permissions
+                new Permission
+                {
+                    PermissionName = "Warehouse Access",
+                    Module = "Warehouse",
+                    Action = "Create",
+                    Description = "Create new warehouse"
+                },
+                new Permission
+                {
+                    PermissionName = "Warehouse Access",
+                    Module = "Warehouse",
+                    Action = "UpDel",
+                    Description = "Update or Soft delete warehouse"
+                },
+                new Permission
+                {
+                    PermissionName = "Warehouse Access",
+                    Module = "Warehouse",
+                    Action = "View",
+                    Description = "View warehouse"
+                },
+
+                // Business StockTransaction Permissions
+                new Permission
+                {
+                    PermissionName = "Stock Transaction Access",
+                    Module = "StockTransaction",
+                    Action = "View",
+                    Description = "View Stock Transaction in warehouse. "
+                },
+                new Permission
+                {
+                    PermissionName = "Stock Transaction Access",
+                    Module = "StockTransaction",
+                    Action = "Import",
+                    Description = "Import products into warehouse ."
+                },
+                new Permission
+                {
+                    PermissionName = "Stock Transaction Access",
+                    Module = "Warehouse",
+                    Action = "Export",
+                    Description = "Export products into warehouse ."
+                },
+                new Permission
+                {
+                    PermissionName = "Stock Transaction Access",
+                    Module = "StockTransaction",
+                    Action = "Transfer",
+                    Description = "Transfer product stock between warehouses. "
+                },
+                new Permission
+                {
+                    PermissionName = "Stock Transaction Access",
+                    Module = "StockTransaction",
+                    Action = "Approve",
+                    Description = "Approve Import / Export Process ."
+                },
+
+                // Product Permissions
+                new Permission
+                {
+                    PermissionName = "Product Access",
+                    Module = "Product",
+                    Action = "View",
+                    Description = "View Product. "
+                },
+                new Permission
+                {
+                    PermissionName = "Product Access",
+                    Module = "Product",
+                    Action = "Create",
+                    Description = "Create new product in application ."
+                },
+                new Permission
+                {
+                    PermissionName = "Product Access",
+                    Module = "Product",
+                    Action = "UpDel",
+                    Description = "Update or Delete (soft delete) product in application ."
+                },
+            };
+
+            foreach(var permission in permissions)
+                context.Permissions.Add(permission);
+
+            await context.SaveChangesAsync();
+        }
+
+        private static async Task SeedRolePermissionsAsync(ApplicationDbContext context)
+        {
+            var rolePermissions = new List<RolePermission>
+            {
+                new RolePermission
+                {
+                    RoleId = 1,
+                    PermissionId = 1,
+                }
+            };
+
+            foreach(var rp in rolePermissions)
+                context.RolePermissions.Add(rp);
 
             await context.SaveChangesAsync();
         }
