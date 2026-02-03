@@ -274,8 +274,15 @@ namespace InventorySystem.Infrastructure.Seed
                 {
                     PermissionName = "Warehouse Access",
                     Module = "Warehouse",
-                    Action = "UpDel",
-                    Description = "Update or Soft delete warehouse"
+                    Action = "Update",
+                    Description = "Update warehouse information ."
+                },
+                new Permission
+                {
+                    PermissionName = "Warehouse Access",
+                    Module = "Warehouse",
+                    Action = "Delete",
+                    Description = "Soft delete warehouse ."
                 },
                 new Permission
                 {
@@ -356,11 +363,7 @@ namespace InventorySystem.Infrastructure.Seed
         {
             var rolePermissions = new List<RolePermission>
             {
-                new RolePermission
-                {
-                    RoleId = 1,
-                    PermissionId = 1,
-                }
+                new RolePermission { RoleId = 1, PermissionId = 1 },        
             };
 
             foreach(var rp in rolePermissions)

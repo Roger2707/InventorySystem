@@ -10,15 +10,11 @@ namespace InventorySystem.Domain.Entities.Identity
         public string Email { get; set; }
         public string PhoneNumber { get; set; }
         public string Address { get; set; }
-
         public bool IsActive { get; set; } = true;
-
-        public int? WarehouseId { get; set; }
-
-        [ForeignKey("WarehouseId")]
-        public Warehouse ManagedWarehouse { get; set; }
 
         // Navigation
         public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
+        public ICollection<UserRegion> UserRegions { get; set; } = new List<UserRegion>();
+        public ICollection<UserWarehouse> UserWarehouses { get; set; } = new List<UserWarehouse>();
     }
 }

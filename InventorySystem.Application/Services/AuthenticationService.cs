@@ -93,7 +93,6 @@ public class AuthenticationService : IAuthenticationService
             Email = registerDto.Email,
             PhoneNumber = registerDto.PhoneNumber,
             Address = registerDto.Address,
-            WarehouseId = registerDto.WarehouseId == 0 ? null : registerDto.WarehouseId,
             IsActive = true
         };
 
@@ -155,7 +154,6 @@ public class AuthenticationService : IAuthenticationService
             PhoneNumber = user.PhoneNumber,
             Address = user.Address,
             IsActive = user.IsActive,
-            WarehouseId = user.WarehouseId,
             CreatedAt = user.CreatedAt,
             UpdatedAt = user.UpdatedAt,
             Roles = roles,

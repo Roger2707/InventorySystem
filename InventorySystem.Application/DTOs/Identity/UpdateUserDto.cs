@@ -7,7 +7,6 @@ public class UpdateUserDto
     public string? PhoneNumber { get; set; }
     public string? Address { get; set; }
     public bool? IsActive { get; set; }
-    public int? WarehouseId { get; set; }
     public List<int>? RoleIds { get; set; }
 }
 

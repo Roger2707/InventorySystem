@@ -52,15 +52,6 @@ public class UserConfiguration : BaseEntityConfiguration<User>
             .IsRequired()
             .HasDefaultValue(true);
 
-        // WarehouseId - Optional Foreign Key
-        builder.Property(u => u.WarehouseId)
-            .IsRequired(false);
-
-        builder.HasOne(u => u.ManagedWarehouse)
-            .WithMany()
-            .HasForeignKey(u => u.WarehouseId)
-            .OnDelete(DeleteBehavior.SetNull);
-
         // Navigation properties
         builder.HasMany(u => u.UserRoles)
             .WithOne(ur => ur.User)

@@ -85,7 +85,6 @@ public class UserService : IUserService
             Email = createDto.Email,
             PhoneNumber = createDto.PhoneNumber,
             Address = createDto.Address,
-            WarehouseId = createDto.WarehouseId,
             IsActive = createDto.IsActive
         };
 
@@ -144,8 +143,6 @@ public class UserService : IUserService
             user.Address = updateDto.Address;
         if (updateDto.IsActive.HasValue)
             user.IsActive = updateDto.IsActive.Value;
-        if (updateDto.WarehouseId.HasValue)
-            user.WarehouseId = updateDto.WarehouseId;
 
         await _unitOfWork.UserRepository.UpdateAsync(user, cancellationToken);
 
@@ -265,7 +262,6 @@ public class UserService : IUserService
             PhoneNumber = user.PhoneNumber,
             Address = user.Address,
             IsActive = user.IsActive,
-            WarehouseId = user.WarehouseId,
             CreatedAt = user.CreatedAt,
             UpdatedAt = user.UpdatedAt,
             Roles = roles,
