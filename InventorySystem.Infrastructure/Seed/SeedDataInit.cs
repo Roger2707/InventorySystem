@@ -23,11 +23,23 @@ namespace InventorySystem.Infrastructure.Seed
             if(await context.Users.AnyAsync() && await context.Roles.AnyAsync() && !await context.UserRoles.AnyAsync())
                 await SeedUserRoleAsync(context);
 
-            if (!await context.Permissions.AnyAsync())
-                await SeedPermissionsAsync(context);
+            if (!await context.Regions.AnyAsync())
+                await SeedRegionAsync(context);
+
+            if (await context.Users.AnyAsync() && await context.Regions.AnyAsync() && !await context.UserRegions.AnyAsync())
+                await SeedUserRegionsAsync(context);
 
             if (!await context.Warehouses.AnyAsync())
                 await SeedWarehouseAsync(context);
+
+            if (await context.Users.AnyAsync() && await context.Warehouses.AnyAsync() && !await context.UserWarehouses.AnyAsync())
+                await SeedUserWarehousesAsync(context);
+
+            if (!await context.Permissions.AnyAsync())
+                await SeedPermissionsAsync(context);
+
+            if (await context.Roles.AnyAsync() && await context.Permissions.AnyAsync() && !await context.RolePermissions.AnyAsync())
+                await SeedRolePermissionsAsync(context);
         }
 
         private static async Task SeedUserAsyc(ApplicationDbContext context, IPasswordHasher hasher)
@@ -216,6 +228,37 @@ namespace InventorySystem.Infrastructure.Seed
             await context.SaveChangesAsync();
         }
 
+        private static async Task SeedRegionAsync(ApplicationDbContext context)
+        {
+            var regions = new List<Region>
+            {
+                new Region {RegionCode = "RE - 001", RegionName = "South"},
+                new Region {RegionCode = "RE - 002", RegionName = "North"},
+                new Region {RegionCode = "RE - 003", RegionName = "Central"},
+                new Region {RegionCode = "RE - 004", RegionName = "International"},
+            };
+
+            foreach (var region in regions) 
+                context.Regions.Add(region);
+
+            await context.SaveChangesAsync();
+        }
+
+        private static async Task SeedUserRegionsAsync(ApplicationDbContext context)
+        {
+            // just for region manager
+            var userRegions = new List<UserRegion>
+            {
+                new UserRegion { UserId = 2, RegionId = 1 },
+                new UserRegion { UserId = 3, RegionId = 2 },
+            };
+
+            foreach (var ur in userRegions)
+                context.UserRegions.Add(ur);
+
+            await context.SaveChangesAsync();
+        }
+
         private static async Task SeedWarehouseAsync(ApplicationDbContext context)
         {
             var warehouses = new List<Warehouse>
@@ -225,30 +268,27 @@ namespace InventorySystem.Infrastructure.Seed
                     WarehouseCode = "WH - 001",
                     WarehouseName = "Warehouse HCM Base",
                     Address = "01 Le Duan, P.Ben Thanh, HCMC",
-                    Region = WarehouseRegion.South,
                     Description = "HCM Warehouse",
                     PhoneNumber = "1234567890",
-                    ManagerId = 4,
+                    RegionId = 1,
                 },
                 new Warehouse
                 {
                     WarehouseCode = "WH - 002",
                     WarehouseName = "Warehouse HN Base",
                     Address = "01 Ho Xuan Huong, HN",
-                    Region = WarehouseRegion.North,
                     Description = "HN Warehouse",
                     PhoneNumber = "1234567890",
-                    ManagerId = 5,
+                    RegionId = 2,
                 },
                 new Warehouse
                 {
                     WarehouseCode = "WH - 003",
                     WarehouseName = "Warehouse VT Base",
                     Address = "01 Hoang Hoa Tham, P.Vung Tau, HCMC",
-                    Region = WarehouseRegion.South,
                     Description = "VT Warehouse",
                     PhoneNumber = "1234567890",
-                    ManagerId = 6,
+                    RegionId = 1,
                 },
             };
 
@@ -258,99 +298,141 @@ namespace InventorySystem.Infrastructure.Seed
             await context.SaveChangesAsync();
         }
 
+        private static async Task SeedUserWarehousesAsync(ApplicationDbContext context)
+        {
+            // rule: RoleLevel > 2 (Regional Manager, Super Admin) are not included in this group
+            var userWarehouses = new List<UserWarehouse>
+            {
+                new UserWarehouse { UserId = 4, WarehouseId = 1, IsWarehouseManager = true },
+                new UserWarehouse { UserId = 4, WarehouseId = 2 },
+                new UserWarehouse { UserId = 5, WarehouseId = 2, IsWarehouseManager = true },
+                new UserWarehouse { UserId = 6, WarehouseId = 3, IsWarehouseManager = true },
+                new UserWarehouse { UserId = 7, WarehouseId = 1 },
+                new UserWarehouse { UserId = 8, WarehouseId = 2 },
+                new UserWarehouse { UserId = 9, WarehouseId = 3 },
+            };
+
+            foreach (var uw in userWarehouses)
+                context.UserWarehouses.Add(uw);
+
+            await context.SaveChangesAsync();
+        }
+
         private static async Task SeedPermissionsAsync(ApplicationDbContext context)
         {
             var permissions = new List<Permission>
             {
-                // Warehouse Permissions
+                #region Warehouse Permissions
+
                 new Permission
                 {
-                    PermissionName = "Warehouse Access",
+                    PermissionName = "WAREHOUSE_CREATE",
                     Module = "Warehouse",
                     Action = "Create",
-                    Description = "Create new warehouse"
+                    Description = "Create new warehouse",
+                    PermissionScope = PermissionScope.System
                 },
                 new Permission
                 {
-                    PermissionName = "Warehouse Access",
+                    PermissionName = "WAREHOUSE_UPDATE",
                     Module = "Warehouse",
                     Action = "Update",
-                    Description = "Update warehouse information ."
+                    Description = "Update warehouse information .",
+                    PermissionScope = PermissionScope.Warehouse
                 },
                 new Permission
                 {
-                    PermissionName = "Warehouse Access",
+                    PermissionName = "WAREHOUSE_DELETE",
                     Module = "Warehouse",
                     Action = "Delete",
-                    Description = "Soft delete warehouse ."
+                    Description = "Soft delete warehouse .",
+                    PermissionScope = PermissionScope.System
                 },
                 new Permission
                 {
-                    PermissionName = "Warehouse Access",
+                    PermissionName = "WAREHOUSE_VIEW",
                     Module = "Warehouse",
                     Action = "View",
-                    Description = "View warehouse"
+                    Description = "View warehouse",
+                    PermissionScope = PermissionScope.Warehouse
                 },
 
-                // Business StockTransaction Permissions
+                #endregion
+
+                #region Stock Transaction Permissions
+
                 new Permission
                 {
-                    PermissionName = "Stock Transaction Access",
+                    PermissionName = "STOCKTRANSACTION_VIEW",
                     Module = "StockTransaction",
                     Action = "View",
-                    Description = "View Stock Transaction in warehouse. "
+                    Description = "View Stock Transaction in warehouse. ",
+                    PermissionScope = PermissionScope.Warehouse
                 },
                 new Permission
                 {
-                    PermissionName = "Stock Transaction Access",
+                    PermissionName = "STOCKTRANSACTION_IMPORT",
                     Module = "StockTransaction",
                     Action = "Import",
-                    Description = "Import products into warehouse ."
+                    Description = "Import products into warehouse .",
+                    PermissionScope = PermissionScope.Warehouse
                 },
                 new Permission
                 {
-                    PermissionName = "Stock Transaction Access",
+                    PermissionName = "STOCKTRANSACTION_EXPORT",
                     Module = "Warehouse",
                     Action = "Export",
-                    Description = "Export products into warehouse ."
+                    Description = "Export products into warehouse .",
+                    PermissionScope = PermissionScope.Warehouse
                 },
                 new Permission
                 {
-                    PermissionName = "Stock Transaction Access",
+                    PermissionName = "STOCKTRANSACTION_TRANSFER",
                     Module = "StockTransaction",
                     Action = "Transfer",
-                    Description = "Transfer product stock between warehouses. "
+                    Description = "Transfer product stock between warehouses. ",
+                    PermissionScope = PermissionScope.Warehouse
                 },
                 new Permission
                 {
-                    PermissionName = "Stock Transaction Access",
+                    PermissionName = "STOCKTRANSACTION_APPROVE_PROCESS",
                     Module = "StockTransaction",
                     Action = "Approve",
-                    Description = "Approve Import / Export Process ."
+                    Description = "Approve Import / Export Process .",
+                    PermissionScope = PermissionScope.Warehouse
                 },
 
-                // Product Permissions
+                #endregion
+
+                #region Product Permmisions
+
                 new Permission
                 {
-                    PermissionName = "Product Access",
+                    PermissionName = "PRODUCT_VIEW",
                     Module = "Product",
                     Action = "View",
-                    Description = "View Product. "
+                    Description = "View Product. ",
+                    PermissionScope = PermissionScope.Warehouse
                 },
                 new Permission
                 {
-                    PermissionName = "Product Access",
+                    PermissionName = "PRODUCT_CREATE",
                     Module = "Product",
                     Action = "Create",
-                    Description = "Create new product in application ."
+                    Description = "Create new product in application .",
+                    PermissionScope = PermissionScope.System
                 },
                 new Permission
                 {
-                    PermissionName = "Product Access",
+                    PermissionName = "Product AccessPRODUCT_UPDATE_DELETE",
                     Module = "Product",
                     Action = "UpDel",
-                    Description = "Update or Delete (soft delete) product in application ."
+                    Description = "Update or Delete (soft delete) product in application .",
+                    PermissionScope = PermissionScope.System
                 },
+
+                #endregion
+
             };
 
             foreach(var permission in permissions)
@@ -361,9 +443,16 @@ namespace InventorySystem.Infrastructure.Seed
 
         private static async Task SeedRolePermissionsAsync(ApplicationDbContext context)
         {
+            // just have permission for Role < 2
             var rolePermissions = new List<RolePermission>
             {
-                new RolePermission { RoleId = 1, PermissionId = 1 },        
+                new RolePermission { RoleId = 4, PermissionId = 2 },
+                new RolePermission { RoleId = 4, PermissionId = 4 },
+                new RolePermission { RoleId = 4, PermissionId = 5 },
+                new RolePermission { RoleId = 4, PermissionId = 6 },
+                new RolePermission { RoleId = 4, PermissionId = 7 },
+                new RolePermission { RoleId = 4, PermissionId = 8 },
+                new RolePermission { RoleId = 4, PermissionId = 10 },
             };
 
             foreach(var rp in rolePermissions)

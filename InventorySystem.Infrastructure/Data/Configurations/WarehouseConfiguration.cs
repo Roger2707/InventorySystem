@@ -34,10 +34,6 @@ public class WarehouseConfiguration : BaseEntityConfiguration<Warehouse>
         builder.Property(w => w.PhoneNumber)
             .HasMaxLength(20);
 
-        // ManagerId - Optional
-        builder.Property(w => w.ManagerId)
-            .IsRequired(false);
-
         // IsActive - Default true
         builder.Property(w => w.IsActive)
             .IsRequired()
@@ -59,6 +55,11 @@ public class WarehouseConfiguration : BaseEntityConfiguration<Warehouse>
         builder.Property(w => w.IsDeleted)
             .IsRequired()
             .HasDefaultValue(false);
+
+        builder.HasOne(w => w.Region)
+           .WithMany()                 
+           .HasForeignKey(w => w.RegionId)
+           .OnDelete(DeleteBehavior.Restrict);
     }
 }
 

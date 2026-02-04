@@ -34,10 +34,13 @@ public class WarehouseRepository : Repository<Warehouse>, IWarehouseRepository
 
     public async Task<IEnumerable<Warehouse>> GetWarehousesByManagerAsync(int managerId, CancellationToken cancellationToken = default)
     {
-        return await _dbSet
-            .Where(w => w.ManagerId == managerId && w.IsActive == true)
-            .OrderBy(w => w.WarehouseName)
+        var warehouses = await _dbSet
+            .Where(w => w.UserWarehouses.Any(uw =>
+                uw.UserId == managerId &&
+                uw.IsWarehouseManager))
             .ToListAsync(cancellationToken);
+
+        return warehouses;
     }
 }
 

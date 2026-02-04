@@ -1,3 +1,5 @@
+using InventorySystem.Domain.Entities.Identity;
+
 namespace InventorySystem.Domain.Entities;
 
 public class Warehouse : BaseEntity
@@ -7,22 +9,17 @@ public class Warehouse : BaseEntity
     public required string WarehouseName { get; set; }
 
     public string? Address { get; set; }
-    public WarehouseRegion Region { get; set; } = WarehouseRegion.South;
 
     public string? PhoneNumber { get; set; }
-
-    public int? ManagerId { get; set; }
 
     public bool IsActive { get; set; } = true;
 
     public string? Description { get; set; }
-}
+    public int? RegionId { get; set; }
+    public Region Region { get; set; }
 
-public enum WarehouseRegion
-{
-    South = 1,
-    North = 2,
-    West = 3,
+    // Navigation
+    public ICollection<UserWarehouse> UserWarehouses { get; set; } = new List<UserWarehouse>();
 }
 
 

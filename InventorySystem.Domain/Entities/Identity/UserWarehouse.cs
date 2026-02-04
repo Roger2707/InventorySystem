@@ -7,5 +7,6 @@
 
         public int WarehouseId { get; set; }
         public Warehouse Warehouse { get; set; }
+        public bool IsWarehouseManager { get; set; } = false;
     }
 }
