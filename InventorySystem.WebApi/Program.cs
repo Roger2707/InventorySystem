@@ -4,7 +4,6 @@ using InventorySystem.Infrastructure.Data;
 using InventorySystem.Infrastructure.Repositories;
 using InventorySystem.Infrastructure.Seed;
 using InventorySystem.Infrastructure.Services;
-using InventorySystem.WebApi.Handlers;
 using InventorySystem.WebApi.Middleware;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
@@ -96,14 +95,13 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("ManagerOrAbove", policy =>
         policy.RequireRole("Super_Admin", "Warehouse_Manager"));
 
-    options.AddPolicy("WarehouseAccess", policy =>
-        policy.Requirements.Add(new WarehouseAccessRequirement()));
+
 });
 
 #endregion
 
 // Register Permission Authorization Handler
-builder.Services.AddScoped<IAuthorizationHandler, WarehouseAccessHandler>();
+
 
 // CORS
 builder.Services.AddCors(options =>

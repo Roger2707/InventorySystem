@@ -113,5 +113,21 @@ namespace InventorySystem.Application.Services
                 UpdatedAt = permission.UpdatedAt
             };
         }
+
+        public async Task<Result> CanRoleHasPermissionAsync(int roleId, string module, string action, CancellationToken cancellationToken = default)
+        {
+            var permission = await _unitOfWork.PermissionRepository.GetByModuleAndActionAsync(module, action, cancellationToken);
+            if(permission == null)
+                return Result.Failure($"Permission with Module: {module} AND Action: {action} not found !");
+
+            int permissionId = permission.Id;
+            var rolePermission = await _unitOfWork.GetRepository<RolePermission>()
+                .FirstOrDefaultAsync(rp => rp.RoleId == roleId && rp.PermissionId == permissionId, cancellationToken);
+
+            if(rolePermission == null)
+                return Result.Failure($"Role with ID {roleId} does not have permission with Module: {module} AND Action: {action} !");
+
+            return Result.Success();
+        }
     }
 }
