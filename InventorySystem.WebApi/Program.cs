@@ -5,6 +5,7 @@ using InventorySystem.Infrastructure.Repositories;
 using InventorySystem.Infrastructure.Seed;
 using InventorySystem.Infrastructure.Services;
 using InventorySystem.WebApi.Middleware;
+using InventorySystem.WebApi.Policies;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
@@ -15,6 +16,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container
 builder.Services.AddControllers();
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddEndpointsApiExplorer();
 
 builder.Services.AddSwaggerGen(options =>
@@ -92,10 +94,24 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("SuperAdminOnly", policy =>
         policy.RequireRole("Super_Admin"));
 
+    options.AddPolicy("RegionalOrAbove", policy =>
+    policy.RequireRole("Super_Admin", "Regional_Manager"));
+
     options.AddPolicy("ManagerOrAbove", policy =>
-        policy.RequireRole("Super_Admin", "Warehouse_Manager"));
+        policy.RequireRole("Super_Admin", "Regional_Manager", "Warehouse_Manager"));
 
+    // WAREHOUSE PERMISSION POLICIES
+    options.AddPolicy("CanCreateWarehouse", policy =>
+        policy.Requirements.Add(new WarehousePermissionRequirement("warehouse", "Create")));
 
+    options.AddPolicy("CaUpdateWarehouse", policy =>
+        policy.Requirements.Add(new WarehousePermissionRequirement("warehouse", "Update")));
+
+    options.AddPolicy("CanDeleteWarehouse", policy =>
+        policy.Requirements.Add(new WarehousePermissionRequirement("warehouse", "Delete")));
+
+    options.AddPolicy("CanViewWarehouse", policy =>
+        policy.Requirements.Add(new WarehousePermissionRequirement("warehouse", "View")));
 });
 
 #endregion

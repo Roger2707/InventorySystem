@@ -141,19 +141,19 @@ namespace InventorySystem.Infrastructure.Seed
             {
                 new Role
                 {
-                    RoleName = "Super Admin",
+                    RoleName = "Super_Admin",
                     Description = "Full Access anywhere in application.",
                     RoleLevel = RoleLevel.SuperAdmin,
                 },
                 new Role
                 {
-                    RoleName = "Regional Manager",
+                    RoleName = "Regional_Manager",
                     Description = "Full Access any warehouse in area they manage.",
                     RoleLevel = RoleLevel.RegionalManager,
                 },
                 new Role
                 {
-                    RoleName = "Warehouse Manager",
+                    RoleName = "Warehouse_Manager",
                     Description = "Full Access in warehouse they manage.",
                     RoleLevel = RoleLevel.WarehouseManager,
                 },

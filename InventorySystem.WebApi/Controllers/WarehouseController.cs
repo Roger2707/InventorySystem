@@ -7,7 +7,6 @@ namespace InventorySystem.WebApi.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize]
 public class WarehouseController : ControllerBase
 {
     private readonly IWarehouseService _warehouseService;
@@ -18,6 +17,7 @@ public class WarehouseController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Policy = "SuperAdminOnly")]
     public async Task<ActionResult<IEnumerable<WarehouseDto>>> GetAll(CancellationToken cancellationToken = default)
     {
         var result = await _warehouseService.GetAllAsync(cancellationToken);
@@ -31,6 +31,7 @@ public class WarehouseController : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [Authorize(Policy = "CanViewWarehouse")]
     public async Task<ActionResult<WarehouseDto>> GetById(int id, CancellationToken cancellationToken = default)
     {
         var result = await _warehouseService.GetByIdAsync(id, cancellationToken);
