@@ -36,13 +36,11 @@ public class UserRepository : Repository<User>, IUserRepository
             .AnyAsync(u => u.Email == email, cancellationToken);
     }
 
-    public async Task<User?> GetWithRolesAndPermissionsAsync(int userId, CancellationToken cancellationToken = default)
+    public async Task<User?> GetWithRolesAsync(int userId, CancellationToken cancellationToken = default)
     {
         return await _dbSet
             .Include(u => u.UserRoles)
-                .ThenInclude(ur => ur.Role)
-                    .ThenInclude(r => r.RolePermissions)
-                        .ThenInclude(rp => rp.Permission)
+            .ThenInclude(ur => ur.Role)
             .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
     }
 

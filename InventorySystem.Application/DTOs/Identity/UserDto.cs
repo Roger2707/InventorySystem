@@ -13,6 +13,5 @@ public class UserDto
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
     public List<string> Roles { get; set; } = new();
-    public List<string> Permissions { get; set; } = new();
 }
 

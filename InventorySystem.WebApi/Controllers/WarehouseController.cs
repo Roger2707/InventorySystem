@@ -45,6 +45,7 @@ public class WarehouseController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Policy = "SuperAdminOnly")]
     public async Task<ActionResult<WarehouseDto>> Create([FromBody] CreateWarehouseDto createDto, CancellationToken cancellationToken = default)
     {
         if (!ModelState.IsValid)
@@ -63,6 +64,7 @@ public class WarehouseController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [Authorize(Policy = "CanUpdateWarehouse")]
     public async Task<ActionResult<WarehouseDto>> Update(int id, [FromBody] UpdateWarehouseDto updateDto, CancellationToken cancellationToken = default)
     {
         if (!ModelState.IsValid)
@@ -85,6 +87,7 @@ public class WarehouseController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Policy = "CanDeleteWarehouse")]
     public async Task<ActionResult> Delete(int id, CancellationToken cancellationToken = default)
     {
         var result = await _warehouseService.DeleteAsync(id, cancellationToken);
@@ -93,11 +96,11 @@ public class WarehouseController : ControllerBase
         {
             return NotFound(result.ErrorMessage);
         }
-
         return NoContent();
     }
 
     [HttpGet("{id}/exists")]
+    [Authorize]
     public async Task<ActionResult<bool>> Exists(int id, CancellationToken cancellationToken = default)
     {
         var result = await _warehouseService.ExistsAsync(id, cancellationToken);

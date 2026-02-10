@@ -1,5 +1,6 @@
 using InventorySystem.Application.DTOs.Identity;
 using InventorySystem.Domain.Common;
+using InventorySystem.Domain.Entities.Identity;
 
 namespace InventorySystem.Application.Services;
 
@@ -11,5 +12,7 @@ public interface IUserService
     Task<Result<UserDto>> UpdateAsync(int id, UpdateUserDto updateDto, CancellationToken cancellationToken = default);
     Task<Result> DeleteAsync(int id, CancellationToken cancellationToken = default);
     Task<Result<UserDto>> AssignRolesAsync(int userId, List<int> roleIds, CancellationToken cancellationToken = default);
+    Task<Result<bool>> IsExistedUserRegion(int userId, int regionId, CancellationToken cancellationToken = default);
+    Task<Result<UserWarehouse>> GetUserWarehouseAsync(int userId, int warehouseId, CancellationToken cancellationToken = default);
 }
 

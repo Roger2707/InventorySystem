@@ -35,33 +35,27 @@ public class AuthenticationService : IAuthenticationService
         }
 
         // Get user with roles and permissions
-        var userWithDetails = await _unitOfWork.UserRepository.GetWithRolesAndPermissionsAsync(user.Id, cancellationToken);
+        var userWithDetails = await _unitOfWork.UserRepository.GetWithRolesAsync(user.Id, cancellationToken);
         
         if (userWithDetails == null)
         {
             return Result<AuthResponseDto>.Failure("User not found.");
         }
 
-        // Extract roles and permissions
+        // Extract roles
         var roles = userWithDetails.UserRoles
             .Select(ur => ur.Role.RoleName)
             .Distinct()
             .ToList();
 
-        var permissions = userWithDetails.UserRoles
-            .SelectMany(ur => ur.Role.RolePermissions)
-            .Select(rp => rp.Permission.PermissionName)
-            .Distinct()
-            .ToList();
-
         // Generate token
-        var token = _jwtService.GenerateToken(userWithDetails, roles, permissions);
+        var token = _jwtService.GenerateToken(userWithDetails, roles);
 
         var response = new AuthResponseDto
         {
             Token = token,
             ExpiresAt = _jwtService.GetTokenExpiration(),
-            User = MapToUserDto(userWithDetails, roles, permissions)
+            User = MapToUserDto(userWithDetails, roles)
         };
 
         return Result<AuthResponseDto>.Success(response);
@@ -100,7 +94,7 @@ public class AuthenticationService : IAuthenticationService
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         // Get the created user with details
-        var createdUser = await _unitOfWork.UserRepository.GetWithRolesAndPermissionsAsync(user.Id, cancellationToken);
+        var createdUser = await _unitOfWork.UserRepository.GetWithRolesAsync(user.Id, cancellationToken);
         
         if (createdUser == null)
         {
@@ -108,15 +102,13 @@ public class AuthenticationService : IAuthenticationService
         }
 
         var roles = new List<string>();
-        var permissions = new List<string>();
-
-        var token = _jwtService.GenerateToken(createdUser, roles, permissions);
+        var token = _jwtService.GenerateToken(createdUser, roles);
 
         var response = new AuthResponseDto
         {
             Token = token,
             ExpiresAt = _jwtService.GetTokenExpiration(),
-            User = MapToUserDto(createdUser, roles, permissions)
+            User = MapToUserDto(createdUser, roles)
         };
 
         return Result<AuthResponseDto>.Success(response);
@@ -143,7 +135,7 @@ public class AuthenticationService : IAuthenticationService
         return Result.Success();
     }
 
-    private static UserDto MapToUserDto(User user, List<string> roles, List<string> permissions)
+    private static UserDto MapToUserDto(User user, List<string> roles)
     {
         return new UserDto
         {
@@ -157,7 +149,6 @@ public class AuthenticationService : IAuthenticationService
             CreatedAt = user.CreatedAt,
             UpdatedAt = user.UpdatedAt,
             Roles = roles,
-            Permissions = permissions
         };
     }
 }

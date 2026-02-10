@@ -19,9 +19,6 @@ public class CreateWarehouseDto
     public string? PhoneNumber { get; set; }
 
     [Range(0, double.MaxValue, ErrorMessage = "Area must be a positive number")]
-    public decimal? Area { get; set; }
-
-    public int? ManagerId { get; set; }
 
     public bool IsActive { get; set; } = true;
 

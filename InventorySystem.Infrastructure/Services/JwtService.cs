@@ -26,7 +26,7 @@ public class JwtService : IJwtService
         _expirationMinutes = int.Parse(configuration["JWTSettings:ExpirationMinutes"] ?? "1440"); // Default 24 hours
     }
 
-    public string GenerateToken(User user, IEnumerable<string> roles, IEnumerable<string> permissions)
+    public string GenerateToken(User user, IEnumerable<string> roles)
     {
         var claims = new List<Claim>
         {
@@ -40,12 +40,6 @@ public class JwtService : IJwtService
         foreach (var role in roles)
         {
             claims.Add(new Claim(ClaimTypes.Role, role));
-        }
-
-        // Add permissions as claims
-        foreach (var permission in permissions)
-        {
-            claims.Add(new Claim("Permission", permission));
         }
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_tokenKey));

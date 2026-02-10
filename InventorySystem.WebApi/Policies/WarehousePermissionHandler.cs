@@ -10,12 +10,14 @@ namespace InventorySystem.WebApi.Policies
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IPermissionService _permissionService;
         private readonly IWarehouseService _warehouseService;
+        private readonly IUserService _userService;
 
-        public WarehousePermissionHandler(IHttpContextAccessor httpContextAccessor, IPermissionService permissionService, IWarehouseService warehouseService)
+        public WarehousePermissionHandler(IHttpContextAccessor httpContextAccessor, IPermissionService permissionService, IWarehouseService warehouseService, IUserService userService)
         {
             _httpContextAccessor = httpContextAccessor;
             _permissionService = permissionService;
             _warehouseService = warehouseService;
+            _userService = userService;
         }
 
         protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context, WarehousePermissionRequirement requirement)
@@ -39,8 +41,7 @@ namespace InventorySystem.WebApi.Policies
                 context.Succeed(requirement);
                 return;
             }
-
-            if(context.User.IsInRole("Regional_Manager"))
+            else if(context.User.IsInRole("Regional_Manager"))
             {
                 var regionIdResult = await _warehouseService.GetRegionIdByWarehouseIdAsync(warehouseId);
                 if (!regionIdResult.IsSuccess)
@@ -50,19 +51,51 @@ namespace InventorySystem.WebApi.Policies
                 }
                 int regionId = regionIdResult.Data;
 
+                var isExistedUserRegionResult = await _userService.IsExistedUserRegion(userId, regionId);
+                if(!isExistedUserRegionResult.Data)
+                {
+                    context.Fail();
+                    return;
+                }
+                else
+                {
+                    context.Succeed(requirement);
+                    return;
+                }
             }
-
-
-            var hasPermissionResult = await _permissionService
-                .CanRoleHasPermissionAsync(userId, requirement.Module, requirement.Action);
-
-            if (hasPermissionResult.IsSuccess)
+            else if(context.User.IsInRole("Warehouse_Manager"))
             {
-                context.Succeed(requirement);
+                var userWarehouseResult = await _userService.GetUserWarehouseAsync(userId, warehouseId);
+                if(!userWarehouseResult.IsSuccess)
+                {
+                    context.Fail();
+                    return;
+                }
+                bool isWarehouseManager = userWarehouseResult.Data.IsWarehouseManager;
+                if(!isWarehouseManager)
+                {
+                    context.Fail();
+                    return;
+                }
+                else
+                {
+                    context.Succeed(requirement);
+                    return;
+                }
             }
             else
             {
-                context.Fail();
+                // This time 100% sure that STAFF role (RoleId = 4)
+                var hasPermissionResult = await _permissionService.CanRoleHasPermissionAsync(4, requirement.Module, requirement.Action);
+                var userWarehouseResult = await _userService.GetUserWarehouseAsync(userId, warehouseId);      
+                if (hasPermissionResult.IsSuccess && userWarehouseResult.IsSuccess)
+                {
+                    context.Succeed(requirement);
+                }
+                else
+                {
+                    context.Fail();
+                }
             }
         }
 
@@ -73,14 +106,14 @@ namespace InventorySystem.WebApi.Policies
                 return null;
 
             // Try route values first
-            if (httpContext.Request.RouteValues.TryGetValue("warehouseId", out var routeValue))
+            if (httpContext.Request.RouteValues.TryGetValue("id", out var routeValue))
             {
                 if (int.TryParse(routeValue?.ToString(), out int warehouseId))
                     return warehouseId;
             }
 
             // Try query string
-            if (httpContext.Request.Query.TryGetValue("warehouseId", out var queryValue))
+            if (httpContext.Request.Query.TryGetValue("id", out var queryValue))
             {
                 if (int.TryParse(queryValue.ToString(), out int warehouseId))
                     return warehouseId;

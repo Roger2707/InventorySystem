@@ -1,6 +1,7 @@
 using InventorySystem.Application.DTOs.Identity;
 using InventorySystem.Application.Interfaces;
 using InventorySystem.Domain.Common;
+using InventorySystem.Domain.Entities;
 using InventorySystem.Domain.Entities.Identity;
 
 namespace InventorySystem.Application.Services;
@@ -18,7 +19,7 @@ public class UserService : IUserService
 
     public async Task<Result<UserDto>> GetByIdAsync(int id, CancellationToken cancellationToken = default)
     {
-        var user = await _unitOfWork.UserRepository.GetWithRolesAndPermissionsAsync(id, cancellationToken);
+        var user = await _unitOfWork.UserRepository.GetWithRolesAsync(id, cancellationToken);
 
         if (user == null)
         {
@@ -26,13 +27,8 @@ public class UserService : IUserService
         }
 
         var roles = user.UserRoles.Select(ur => ur.Role.RoleName).Distinct().ToList();
-        var permissions = user.UserRoles
-            .SelectMany(ur => ur.Role.RolePermissions)
-            .Select(rp => rp.Permission.PermissionName)
-            .Distinct()
-            .ToList();
 
-        var userDto = MapToDto(user, roles, permissions);
+        var userDto = MapToDto(user, roles);
         return Result<UserDto>.Success(userDto);
     }
 
@@ -43,16 +39,11 @@ public class UserService : IUserService
 
         foreach (var user in users)
         {
-            var userWithDetails = await _unitOfWork.UserRepository.GetWithRolesAndPermissionsAsync(user.Id, cancellationToken);
+            var userWithDetails = await _unitOfWork.UserRepository.GetWithRolesAsync(user.Id, cancellationToken);
             if (userWithDetails != null)
             {
                 var roles = userWithDetails.UserRoles.Select(ur => ur.Role.RoleName).Distinct().ToList();
-                var permissions = userWithDetails.UserRoles
-                    .SelectMany(ur => ur.Role.RolePermissions)
-                    .Select(rp => rp.Permission.PermissionName)
-                    .Distinct()
-                    .ToList();
-                userDtos.Add(MapToDto(userWithDetails, roles, permissions));
+                userDtos.Add(MapToDto(userWithDetails, roles));
             }
         }
 
@@ -97,20 +88,14 @@ public class UserService : IUserService
             await AssignRolesInternalAsync(user.Id, createDto.RoleIds, cancellationToken);
         }
 
-        var createdUser = await _unitOfWork.UserRepository.GetWithRolesAndPermissionsAsync(user.Id, cancellationToken);
+        var createdUser = await _unitOfWork.UserRepository.GetWithRolesAsync(user.Id, cancellationToken);
         if (createdUser == null)
         {
             return Result<UserDto>.Failure("Failed to create user.");
         }
 
         var roles = createdUser.UserRoles.Select(ur => ur.Role.RoleName).Distinct().ToList();
-        var permissions = createdUser.UserRoles
-            .SelectMany(ur => ur.Role.RolePermissions)
-            .Select(rp => rp.Permission.PermissionName)
-            .Distinct()
-            .ToList();
-
-        var userDto = MapToDto(createdUser, roles, permissions);
+        var userDto = MapToDto(createdUser, roles);
         return Result<UserDto>.Success(userDto);
     }
 
@@ -154,20 +139,13 @@ public class UserService : IUserService
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        var updatedUser = await _unitOfWork.UserRepository.GetWithRolesAndPermissionsAsync(id, cancellationToken);
+        var updatedUser = await _unitOfWork.UserRepository.GetWithRolesAsync(id, cancellationToken);
         if (updatedUser == null)
         {
             return Result<UserDto>.Failure("Failed to update user.");
         }
-
         var roles = updatedUser.UserRoles.Select(ur => ur.Role.RoleName).Distinct().ToList();
-        var permissions = updatedUser.UserRoles
-            .SelectMany(ur => ur.Role.RolePermissions)
-            .Select(rp => rp.Permission.PermissionName)
-            .Distinct()
-            .ToList();
-
-        var userDto = MapToDto(updatedUser, roles, permissions);
+        var userDto = MapToDto(updatedUser, roles);
         return Result<UserDto>.Success(userDto);
     }
 
@@ -200,26 +178,19 @@ public class UserService : IUserService
         await AssignRolesInternalAsync(userId, roleIds, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        var updatedUser = await _unitOfWork.UserRepository.GetWithRolesAndPermissionsAsync(userId, cancellationToken);
+        var updatedUser = await _unitOfWork.UserRepository.GetWithRolesAsync(userId, cancellationToken);
         if (updatedUser == null)
         {
             return Result<UserDto>.Failure("Failed to assign roles.");
         }
-
         var roles = updatedUser.UserRoles.Select(ur => ur.Role.RoleName).Distinct().ToList();
-        var permissions = updatedUser.UserRoles
-            .SelectMany(ur => ur.Role.RolePermissions)
-            .Select(rp => rp.Permission.PermissionName)
-            .Distinct()
-            .ToList();
-
-        var userDto = MapToDto(updatedUser, roles, permissions);
+        var userDto = MapToDto(updatedUser, roles);
         return Result<UserDto>.Success(userDto);
     }
 
     private async Task AssignRolesInternalAsync(int userId, List<int> roleIds, CancellationToken cancellationToken)
     {
-        var user = await _unitOfWork.UserRepository.GetWithRolesAndPermissionsAsync(userId, cancellationToken);
+        var user = await _unitOfWork.UserRepository.GetWithRolesAsync(userId, cancellationToken);
         if (user == null) return;
 
         // Remove existing roles
@@ -251,7 +222,7 @@ public class UserService : IUserService
         }
     }
 
-    private static UserDto MapToDto(User user, List<string> roles, List<string> permissions)
+    private static UserDto MapToDto(User user, List<string> roles)
     {
         return new UserDto
         {
@@ -265,8 +236,23 @@ public class UserService : IUserService
             CreatedAt = user.CreatedAt,
             UpdatedAt = user.UpdatedAt,
             Roles = roles,
-            Permissions = permissions
         };
+    }
+
+    public async Task<Result<bool>> IsExistedUserRegion(int userId, int regionId, CancellationToken cancellationToken = default)
+    {
+        var exist = await _unitOfWork.GetRepository<UserRegion>().ExistsAsync(ur => ur.UserId == userId && ur.RegionId == regionId);
+        return Result<bool>.Success(exist);
+    }
+
+    public async Task<Result<UserWarehouse>> GetUserWarehouseAsync(int userId, int warehouseId, CancellationToken cancellationToken = default)
+    {
+        var user_warehouse = await _unitOfWork.GetRepository<UserWarehouse>().FirstOrDefaultAsync(ur => ur.UserId == userId && ur.WarehouseId == warehouseId);
+        if (user_warehouse == null)
+        {
+            return Result<UserWarehouse>.Failure($"UserWarehouse with User ID {userId} and Warehouse ID {warehouseId} not found.");
+        }
+        return Result<UserWarehouse>.Success(user_warehouse);
     }
 }
 

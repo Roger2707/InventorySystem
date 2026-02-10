@@ -69,7 +69,6 @@ builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<IJwtService, JwtService>();
 
 builder.Services.AddScoped<InventorySystem.Application.Interfaces.IAuthenticationService, InventorySystem.Application.Services.AuthenticationService>();
-builder.Services.AddScoped<InventorySystem.Application.Interfaces.IAuthorizationService, AuthorizationService>();
 
 #region Authentication Configuration
 
@@ -101,9 +100,6 @@ builder.Services.AddAuthorization(options =>
         policy.RequireRole("Super_Admin", "Regional_Manager", "Warehouse_Manager"));
 
     // WAREHOUSE PERMISSION POLICIES
-    options.AddPolicy("CanCreateWarehouse", policy =>
-        policy.Requirements.Add(new WarehousePermissionRequirement("warehouse", "Create")));
-
     options.AddPolicy("CaUpdateWarehouse", policy =>
         policy.Requirements.Add(new WarehousePermissionRequirement("warehouse", "Update")));
 
@@ -117,7 +113,7 @@ builder.Services.AddAuthorization(options =>
 #endregion
 
 // Register Permission Authorization Handler
-
+builder.Services.AddScoped<IAuthorizationHandler, WarehousePermissionHandler>();
 
 // CORS
 builder.Services.AddCors(options =>
