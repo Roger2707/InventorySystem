@@ -1,25 +1,18 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace InventorySystem.Application.DTOs;
+namespace InventorySystem.Application.DTOs.Customers;
 
-public class CreateWarehouseDto
+public class CreateCustomerDto
 {
     [Required]
-    [StringLength(20, MinimumLength = 1)]
-    public string WarehouseCode { get; set; } = string.Empty;
-
-    [Required]
     [StringLength(100, MinimumLength = 1)]
-    public string WarehouseName { get; set; } = string.Empty;
+    public string CustomerName { get; set; } = string.Empty;
 
     [StringLength(255)]
     public string? Address { get; set; }
 
     [StringLength(20)]
     public string? PhoneNumber { get; set; }
-
-    [Range(0, double.MaxValue, ErrorMessage = "Area must be a positive number")]
-
     public bool IsActive { get; set; } = true;
 
     [StringLength(500)]

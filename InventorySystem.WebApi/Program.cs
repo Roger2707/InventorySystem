@@ -64,6 +64,9 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.AddScoped<IPermissionService, PermissionService>();
 
+builder.Services.AddScoped<ICustomerService, CustomerService>();
+builder.Services.AddScoped<ISupplierService, SupplierService>();
+
 // Register Identity services
 builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<IJwtService, JwtService>();
@@ -101,13 +104,13 @@ builder.Services.AddAuthorization(options =>
 
     // WAREHOUSE PERMISSION POLICIES
     options.AddPolicy("CaUpdateWarehouse", policy =>
-        policy.Requirements.Add(new WarehousePermissionRequirement("warehouse", "Update")));
+        policy.Requirements.Add(new WarehousePermissionRequirement("Warehouse", "Update")));
 
     options.AddPolicy("CanDeleteWarehouse", policy =>
-        policy.Requirements.Add(new WarehousePermissionRequirement("warehouse", "Delete")));
+        policy.Requirements.Add(new WarehousePermissionRequirement("Warehouse", "Delete")));
 
     options.AddPolicy("CanViewWarehouse", policy =>
-        policy.Requirements.Add(new WarehousePermissionRequirement("warehouse", "View")));
+        policy.Requirements.Add(new WarehousePermissionRequirement("Warehouse", "View")));
 });
 
 #endregion

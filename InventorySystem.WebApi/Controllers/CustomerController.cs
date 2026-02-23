@@ -1,4 +1,4 @@
-using InventorySystem.Application.DTOs.Warehouses;
+using InventorySystem.Application.DTOs.Customers;
 using InventorySystem.Application.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -7,20 +7,20 @@ namespace InventorySystem.WebApi.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class WarehouseController : ControllerBase
+public class CustomerController : ControllerBase
 {
-    private readonly IWarehouseService _warehouseService;
+    private readonly ICustomerService _customerService;
 
-    public WarehouseController(IWarehouseService warehouseService)
+    public CustomerController(ICustomerService CustomerService)
     {
-        _warehouseService = warehouseService;
+        _customerService = CustomerService;
     }
 
     [HttpGet]
-    [Authorize(Policy = "SuperAdminOnly")]
-    public async Task<ActionResult<IEnumerable<WarehouseDto>>> GetAll(CancellationToken cancellationToken = default)
+    [Authorize]
+    public async Task<ActionResult<IEnumerable<CustomerDto>>> GetAll(CancellationToken cancellationToken = default)
     {
-        var result = await _warehouseService.GetAllAsync(cancellationToken);
+        var result = await _customerService.GetAllAsync(cancellationToken);
         
         if (!result.IsSuccess)
         {
@@ -31,10 +31,10 @@ public class WarehouseController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    [Authorize(Policy = "CanViewWarehouse")]
-    public async Task<ActionResult<WarehouseDto>> GetById(int id, CancellationToken cancellationToken = default)
+    [Authorize]
+    public async Task<ActionResult<CustomerDto>> GetById(int id, CancellationToken cancellationToken = default)
     {
-        var result = await _warehouseService.GetByIdAsync(id, cancellationToken);
+        var result = await _customerService.GetByIdAsync(id, cancellationToken);
         
         if (!result.IsSuccess)
         {
@@ -45,15 +45,15 @@ public class WarehouseController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Policy = "SuperAdminOnly")]
-    public async Task<ActionResult<WarehouseDto>> Create([FromBody] CreateWarehouseDto createDto, CancellationToken cancellationToken = default)
+    [Authorize]
+    public async Task<ActionResult<CustomerDto>> Create([FromBody] CreateCustomerDto createDto, CancellationToken cancellationToken = default)
     {
         if (!ModelState.IsValid)
         {
             return BadRequest(ModelState);
         }
 
-        var result = await _warehouseService.CreateAsync(createDto, cancellationToken);
+        var result = await _customerService.CreateAsync(createDto, cancellationToken);
         
         if (!result.IsSuccess)
         {
@@ -64,15 +64,15 @@ public class WarehouseController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    [Authorize(Policy = "CanUpdateWarehouse")]
-    public async Task<ActionResult<WarehouseDto>> Update(int id, [FromBody] UpdateWarehouseDto updateDto, CancellationToken cancellationToken = default)
+    [Authorize]
+    public async Task<ActionResult<CustomerDto>> Update(int id, [FromBody] UpdateCustomerDto updateDto, CancellationToken cancellationToken = default)
     {
         if (!ModelState.IsValid)
         {
             return BadRequest(ModelState);
         }
 
-        var result = await _warehouseService.UpdateAsync(id, updateDto, cancellationToken);
+        var result = await _customerService.UpdateAsync(id, updateDto, cancellationToken);
         
         if (!result.IsSuccess)
         {
@@ -87,10 +87,10 @@ public class WarehouseController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Policy = "CanDeleteWarehouse")]
+    [Authorize]
     public async Task<ActionResult> Delete(int id, CancellationToken cancellationToken = default)
     {
-        var result = await _warehouseService.DeleteAsync(id, cancellationToken);
+        var result = await _customerService.DeleteAsync(id, cancellationToken);
         
         if (!result.IsSuccess)
         {
@@ -103,7 +103,7 @@ public class WarehouseController : ControllerBase
     [Authorize]
     public async Task<ActionResult<bool>> Exists(int id, CancellationToken cancellationToken = default)
     {
-        var result = await _warehouseService.ExistsAsync(id, cancellationToken);
+        var result = await _customerService.ExistsAsync(id, cancellationToken);
         return Ok(result.Data);
     }
 }

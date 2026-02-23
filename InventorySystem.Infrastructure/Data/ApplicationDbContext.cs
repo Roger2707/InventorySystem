@@ -18,6 +18,10 @@ public class ApplicationDbContext : DbContext
     public DbSet<UserWarehouse> UserWarehouses { get; set; }
     public DbSet<RolePermission> RolePermissions { get; set; }
 
+    // Customer / Supplier entities would go here
+    public DbSet<Customer> Customers { get; set; }
+    public DbSet<Supplier> Suppliers { get; set; }
+
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
         : base(options)
     {

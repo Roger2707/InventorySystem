@@ -42,5 +42,11 @@ public class WarehouseRepository : Repository<Warehouse>, IWarehouseRepository
 
         return warehouses;
     }
+
+    public async Task<List<string>> GetAllWarehouseCodeAsync(CancellationToken cancellationToken)
+    {
+        var warehouseCodes = await _dbSet.Select(w => w.WarehouseCode).ToListAsync(cancellationToken);
+        return warehouseCodes;
+    }
 }
 

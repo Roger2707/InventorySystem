@@ -1,4 +1,4 @@
-using InventorySystem.Application.DTOs;
+using InventorySystem.Application.DTOs.Warehouses;
 using InventorySystem.Domain.Common;
 
 namespace InventorySystem.Application.Services;

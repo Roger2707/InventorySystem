@@ -1,4 +1,4 @@
-using InventorySystem.Application.DTOs;
+using InventorySystem.Application.DTOs.Warehouses;
 using InventorySystem.Application.Extensions;
 using InventorySystem.Application.Interfaces;
 using InventorySystem.Domain.Common;
@@ -53,13 +53,18 @@ public class WarehouseService : IWarehouseService
 
     public async Task<Result<WarehouseDto>> CreateAsync(CreateWarehouseDto createDto, CancellationToken cancellationToken = default)
     {
-        // Check if warehouse code already exists
-        if (await _unitOfWork.WarehouseRepository.ExistsByCodeAsync(createDto.WarehouseCode, cancellationToken))
-        {
-            return Result<WarehouseDto>.Failure($"Warehouse with code '{createDto.WarehouseCode}' already exists.");
-        }
+        var warehouseCodes = await _unitOfWork.WarehouseRepository.GetAllWarehouseCodeAsync(cancellationToken);
+        string generatedWarehouseCode = GenerateWarehouseCode(warehouseCodes);
 
-        var warehouse = MapToEntity(createDto);
+        // Code Empty Check
+        if (string.IsNullOrWhiteSpace(generatedWarehouseCode))
+            return Result<WarehouseDto>.Failure("Failed to generate a valid warehouse code.");
+
+        // Code Exists Check
+        if (await _unitOfWork.WarehouseRepository.ExistsByCodeAsync(generatedWarehouseCode, cancellationToken))
+            return Result<WarehouseDto>.Failure($"Warehouse with code '{generatedWarehouseCode}' already exists.");
+
+        var warehouse = MapToEntity(createDto, generatedWarehouseCode);
         await _unitOfWork.WarehouseRepository.AddAsync(warehouse, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -134,11 +139,11 @@ public class WarehouseService : IWarehouseService
         };
     }
 
-    private static Warehouse MapToEntity(CreateWarehouseDto createDto)
+    private static Warehouse MapToEntity(CreateWarehouseDto createDto, string warehouseCode)
     {
         return new Warehouse
         {
-            WarehouseCode = createDto.WarehouseCode,
+            WarehouseCode = warehouseCode,
             WarehouseName = createDto.WarehouseName,
             Address = createDto.Address,
             PhoneNumber = createDto.PhoneNumber,
@@ -155,6 +160,20 @@ public class WarehouseService : IWarehouseService
         warehouse.PhoneNumber = updateDto.PhoneNumber;
         warehouse.IsActive = updateDto.IsActive;
         warehouse.Description = updateDto.Description;
+    }
+
+    private string GenerateWarehouseCode(List<string> codes)
+    {
+        if (codes == null || !codes.Any())
+            return "WH - 001";
+
+        int maxNumber = codes
+            .Select(x => x.Split('-')[1].Trim())
+            .Select(x => int.Parse(x))            
+            .Max();                               
+
+        int nextNumber = maxNumber + 1;
+        return $"WH - {nextNumber:D3}";
     }
 }
 

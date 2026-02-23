@@ -40,6 +40,12 @@ namespace InventorySystem.Infrastructure.Seed
 
             if (await context.Roles.AnyAsync() && await context.Permissions.AnyAsync() && !await context.RolePermissions.AnyAsync())
                 await SeedRolePermissionsAsync(context);
+
+            if (!await context.Customers.AnyAsync())
+                await SeedCustomersAsync(context);
+
+            if (!await context.Suppliers.AnyAsync())
+                await SeedSuppliersAsync(context);
         }
 
         private static async Task SeedUserAsyc(ApplicationDbContext context, IPasswordHasher hasher)
@@ -457,6 +463,50 @@ namespace InventorySystem.Infrastructure.Seed
 
             foreach(var rp in rolePermissions)
                 context.RolePermissions.Add(rp);
+
+            await context.SaveChangesAsync();
+        }
+
+        private static async Task SeedCustomersAsync(ApplicationDbContext context)
+        {
+            var customers = new List<Customer>
+            {
+                new Customer { CustomerCode = "CUS - 001", CustomerName = "Phoenix Dynamics", Address = "New York", PhoneNumber = "0900000001", Description = "Strategic Partner" },
+                new Customer { CustomerCode = "CUS - 002", CustomerName = "Silverline Holdings", Address = "Los Angeles", PhoneNumber = "0900000002", Description = "Premium Client" },
+                new Customer { CustomerCode = "CUS - 003", CustomerName = "NovaEdge Solutions", Address = "Chicago", PhoneNumber = "0900000003" },
+                new Customer { CustomerCode = "CUS - 004", CustomerName = "Ironclad Ventures", Address = "Houston", PhoneNumber = "0900000004" },
+                new Customer { CustomerCode = "CUS - 005", CustomerName = "BluePeak Industries", Address = "Seattle", PhoneNumber = "0900000005" },
+                new Customer { CustomerCode = "CUS - 006", CustomerName = "Quantum Axis Corp", Address = "San Francisco", PhoneNumber = "0900000006" },
+                new Customer { CustomerCode = "CUS - 007", CustomerName = "Velocity Group", Address = "Boston", PhoneNumber = "0900000007" },
+                new Customer { CustomerCode = "CUS - 008", CustomerName = "Apex Horizon Ltd", Address = "Denver", PhoneNumber = "0900000008" },
+                new Customer { CustomerCode = "CUS - 009", CustomerName = "TitanCore Enterprises", Address = "Miami", PhoneNumber = "0900000009" },
+                new Customer { CustomerCode = "CUS - 010", CustomerName = "Eclipse Innovations", Address = "Atlanta", PhoneNumber = "0900000010" }
+            };
+
+            foreach (var c in customers)
+                context.Customers.Add(c);
+
+            await context.SaveChangesAsync();
+        }
+
+        private static async Task SeedSuppliersAsync(ApplicationDbContext context)
+        {
+            var suppliers = new List<Supplier>
+            {
+                new Supplier { SupplierCode = "SUP - 001", SupplierName = "BlackForge Supply Co.", Address = "New York", PhoneNumber = "0911000001", Description = "Primary Materials Provider" },
+                new Supplier { SupplierCode = "SUP - 002", SupplierName = "StormFront Logistics", Address = "Los Angeles", PhoneNumber = "0911000002" },
+                new Supplier { SupplierCode = "SUP - 003", SupplierName = "IronPeak Distribution", Address = "Chicago", PhoneNumber = "0911000003" },
+                new Supplier { SupplierCode = "SUP - 004", SupplierName = "Vanguard Industrial", Address = "Houston", PhoneNumber = "0911000004" },
+                new Supplier { SupplierCode = "SUP - 005", SupplierName = "Titan Supply Chain", Address = "Seattle", PhoneNumber = "0911000005" },
+                new Supplier { SupplierCode = "SUP - 006", SupplierName = "DarkMatter Exports", Address = "San Francisco", PhoneNumber = "0911000006" },
+                new Supplier { SupplierCode = "SUP - 007", SupplierName = "QuantumTrade Global", Address = "Boston", PhoneNumber = "0911000007" },
+                new Supplier { SupplierCode = "SUP - 008", SupplierName = "SilverStone Manufacturing", Address = "Denver", PhoneNumber = "0911000008" },
+                new Supplier { SupplierCode = "SUP - 009", SupplierName = "CrimsonLine Wholesale", Address = "Miami", PhoneNumber = "0911000009" },
+                new Supplier { SupplierCode = "SUP - 010", SupplierName = "Nebula Industrial Group", Address = "Atlanta", PhoneNumber = "0911000010" }
+            };
+
+            foreach (var c in suppliers)
+                context.Suppliers.Add(c);
 
             await context.SaveChangesAsync();
         }

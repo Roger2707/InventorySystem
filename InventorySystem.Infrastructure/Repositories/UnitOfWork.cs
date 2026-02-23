@@ -10,16 +10,21 @@ public class UnitOfWork : IUnitOfWork
     private readonly ApplicationDbContext _context;
     private readonly Dictionary<Type, object> _repositories;
     private IDbContextTransaction? _transaction;
-    private IWarehouseRepository? _warehouseRepository;
+
     private IUserRepository? _userRepository;
     private IRoleRepository? _roleRepository;
     private IPermissionRepository? _permissionRepository;
+    private IWarehouseRepository? _warehouseRepository;
+    private ICustomerRepository? _customerRepository;
+    private ISupplierRepository? _supplierRepository;
 
     public UnitOfWork(ApplicationDbContext context)
     {
         _context = context;
         _repositories = new Dictionary<Type, object>();
     }
+
+    #region Repository Accessors
 
     public IRepository<T> GetRepository<T>() where T : class
     {
@@ -83,6 +88,34 @@ public class UnitOfWork : IUnitOfWork
         }
     }
 
+    public ICustomerRepository CustomerRepository
+    {
+        get
+        {
+            if (_customerRepository == null)
+            {
+                _customerRepository = new CustomerRepository(_context);
+            }
+            return _customerRepository;
+        }
+    }
+
+    public ISupplierRepository SupplierRepository
+    {
+        get
+        {
+            if (_supplierRepository == null)
+            {
+                _supplierRepository = new SupplierRepository(_context);
+            }
+            return _supplierRepository;
+        }
+    }
+
+    #endregion
+
+    #region Transaction Methods
+
     public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         return await _context.SaveChangesAsync(cancellationToken);
@@ -118,5 +151,7 @@ public class UnitOfWork : IUnitOfWork
         _transaction?.Dispose();
         _context.Dispose();
     }
+
+    #endregion
 }
 
