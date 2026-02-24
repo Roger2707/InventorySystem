@@ -12,6 +12,24 @@ namespace InventorySystem.Infrastructure.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
+                name: "Categories",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    ParentId = table.Column<int>(type: "int", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
+                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Categories", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Customers",
                 columns: table => new
                 {
@@ -114,6 +132,23 @@ namespace InventorySystem.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "UoMs",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
+                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_UoMs", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Users",
                 columns: table => new
                 {
@@ -188,6 +223,42 @@ namespace InventorySystem.Infrastructure.Migrations
                         principalTable: "Roles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Products",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    SKU = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    Barcode = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    CategoryId = table.Column<int>(type: "int", nullable: false),
+                    BaseUoMId = table.Column<int>(type: "int", nullable: false),
+                    MinStockLevel = table.Column<decimal>(type: "decimal(18,4)", precision: 18, scale: 4, nullable: false),
+                    IsPerishable = table.Column<bool>(type: "bit", nullable: false),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
+                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Products", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Products_Categories_CategoryId",
+                        column: x => x.CategoryId,
+                        principalTable: "Categories",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Products_UoMs_BaseUoMId",
+                        column: x => x.BaseUoMId,
+                        principalTable: "UoMs",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -269,6 +340,43 @@ namespace InventorySystem.Infrastructure.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
+            migrationBuilder.CreateTable(
+                name: "ProductUoMConversions",
+                columns: table => new
+                {
+                    ProductId = table.Column<int>(type: "int", nullable: false),
+                    FromUoMId = table.Column<int>(type: "int", nullable: false),
+                    ToUoMId = table.Column<int>(type: "int", nullable: false),
+                    Factor = table.Column<decimal>(type: "decimal(18,6)", precision: 18, scale: 6, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ProductUoMConversions", x => new { x.ProductId, x.FromUoMId, x.ToUoMId });
+                    table.ForeignKey(
+                        name: "FK_ProductUoMConversions_Products_ProductId",
+                        column: x => x.ProductId,
+                        principalTable: "Products",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_ProductUoMConversions_UoMs_FromUoMId",
+                        column: x => x.FromUoMId,
+                        principalTable: "UoMs",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_ProductUoMConversions_UoMs_ToUoMId",
+                        column: x => x.ToUoMId,
+                        principalTable: "UoMs",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Categories_IsDeleted",
+                table: "Categories",
+                column: "IsDeleted");
+
             migrationBuilder.CreateIndex(
                 name: "IX_Customers_CustomerCode",
                 table: "Customers",
@@ -295,6 +403,43 @@ namespace InventorySystem.Infrastructure.Migrations
                 table: "Permissions",
                 column: "PermissionName",
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Products_BaseUoMId",
+                table: "Products",
+                column: "BaseUoMId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Products_CategoryId",
+                table: "Products",
+                column: "CategoryId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Products_IsDeleted",
+                table: "Products",
+                column: "IsDeleted");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Products_SKU",
+                table: "Products",
+                column: "SKU",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ProductUoMConversions_FromUoMId",
+                table: "ProductUoMConversions",
+                column: "FromUoMId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ProductUoMConversions_ProductId_FromUoMId_ToUoMId",
+                table: "ProductUoMConversions",
+                columns: new[] { "ProductId", "FromUoMId", "ToUoMId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ProductUoMConversions_ToUoMId",
+                table: "ProductUoMConversions",
+                column: "ToUoMId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Regions_IsDeleted",
@@ -338,6 +483,11 @@ namespace InventorySystem.Infrastructure.Migrations
                 table: "Suppliers",
                 column: "SupplierCode",
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UoMs_IsDeleted",
+                table: "UoMs",
+                column: "IsDeleted");
 
             migrationBuilder.CreateIndex(
                 name: "IX_UserRegions_RegionId",
@@ -410,6 +560,9 @@ namespace InventorySystem.Infrastructure.Migrations
                 name: "Customers");
 
             migrationBuilder.DropTable(
+                name: "ProductUoMConversions");
+
+            migrationBuilder.DropTable(
                 name: "RolePermissions");
 
             migrationBuilder.DropTable(
@@ -425,6 +578,9 @@ namespace InventorySystem.Infrastructure.Migrations
                 name: "UserWarehouses");
 
             migrationBuilder.DropTable(
+                name: "Products");
+
+            migrationBuilder.DropTable(
                 name: "Permissions");
 
             migrationBuilder.DropTable(
@@ -435,6 +591,12 @@ namespace InventorySystem.Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "Warehouses");
+
+            migrationBuilder.DropTable(
+                name: "Categories");
+
+            migrationBuilder.DropTable(
+                name: "UoMs");
 
             migrationBuilder.DropTable(
                 name: "Regions");

@@ -49,6 +49,15 @@ namespace InventorySystem.Infrastructure.Seed
 
             if (!await context.Categories.AnyAsync())
                 await SeedCategoriesAsync(context);
+
+            if (!await context.UoMs.AnyAsync())
+                await SeedUoMsAsync(context);
+
+            if (!await context.Products.AnyAsync())
+                await SeedProductsAsync(context);
+
+            if (await context.Products.AnyAsync() && await context.UoMs.AnyAsync() && !await context.ProductUoMConversions.AnyAsync())
+                await SeedProductConversionsAsync(context);
         }
 
         private static async Task SeedUserAsyc(ApplicationDbContext context, IPasswordHasher hasher)
@@ -516,47 +525,157 @@ namespace InventorySystem.Infrastructure.Seed
 
         private static async Task SeedCategoriesAsync(ApplicationDbContext context)
         {
-            // ===== ROOT LEVEL =====
-            var electronics = new Category { Name = "Electronics" };
-            var fashion = new Category { Name = "Fashion" };
-            var home = new Category { Name = "Home" };
+            if (context.Categories.Any())
+                return;
 
-            context.Categories.AddRange(electronics, fashion, home);
+            // ===== ROOT LEVEL =====
+            var ingredients = new Category { Name = "Ingredients" };
+            var beverages = new Category { Name = "Beverages" };
+            var kitchenSupplies = new Category { Name = "Kitchen Supplies" };
+
+            context.Categories.AddRange(ingredients, beverages, kitchenSupplies);
             await context.SaveChangesAsync(); // Generate Ids
 
+
             // ===== LEVEL 2 =====
-            var laptop = new Category { Name = "Laptop", ParentId = electronics.Id };
-            var mobile = new Category { Name = "Mobile Phones", ParentId = electronics.Id };
+            var meat = new Category { Name = "Meat", ParentId = ingredients.Id };
+            var seafood = new Category { Name = "Seafood", ParentId = ingredients.Id };
+            var vegetables = new Category { Name = "Vegetables", ParentId = ingredients.Id };
+            var dairy = new Category { Name = "Dairy", ParentId = ingredients.Id };
 
-            var men = new Category { Name = "Men", ParentId = fashion.Id };
-            var women = new Category { Name = "Women", ParentId = fashion.Id };
+            var wine = new Category { Name = "Wine", ParentId = beverages.Id };
+            var beer = new Category { Name = "Beer", ParentId = beverages.Id };
+            var softDrinks = new Category { Name = "Soft Drinks", ParentId = beverages.Id };
 
-            var furniture = new Category { Name = "Furniture", ParentId = home.Id };
-            var appliances = new Category { Name = "Appliances", ParentId = home.Id };
+            var spices = new Category { Name = "Spices", ParentId = kitchenSupplies.Id };
+            var sauces = new Category { Name = "Sauces", ParentId = kitchenSupplies.Id };
 
             context.Categories.AddRange(
-                laptop, mobile,
-                men, women,
-                furniture, appliances
+                meat, seafood, vegetables, dairy,
+                wine, beer, softDrinks,
+                spices, sauces
             );
+
             await context.SaveChangesAsync();
 
             // ===== LEVEL 3 =====
-            var gaming = new Category { Name = "Gaming", ParentId = laptop.Id };
-            var office = new Category { Name = "Office", ParentId = laptop.Id };
+            var beef = new Category { Name = "Beef", ParentId = meat.Id };
+            var chicken = new Category { Name = "Chicken", ParentId = meat.Id };
 
-            var android = new Category { Name = "Android", ParentId = mobile.Id };
-            var iphone = new Category { Name = "iPhone", ParentId = mobile.Id };
+            var redWine = new Category { Name = "Red Wine", ParentId = wine.Id };
+            var whiteWine = new Category { Name = "White Wine", ParentId = wine.Id };
 
-            var shirts = new Category { Name = "Shirts", ParentId = men.Id };
-            var pants = new Category { Name = "Pants", ParentId = men.Id };
+            var importedBeer = new Category { Name = "Imported Beer", ParentId = beer.Id };
 
             context.Categories.AddRange(
-                gaming, office,
-                android, iphone,
-                shirts, pants
+                beef, chicken,
+                redWine, whiteWine,
+                importedBeer
             );
 
+            await context.SaveChangesAsync();
+        }
+
+        private static async Task SeedUoMsAsync(ApplicationDbContext context)
+        {
+            if (context.UoMs.Any()) return;
+
+            var uoms = new List<UoM>
+            {
+                new UoM { Name = "Kilogram" },
+                new UoM { Name = "Gram" },
+                new UoM { Name = "Liter" },
+                new UoM { Name = "Milliliter" },
+                new UoM { Name = "Bottle" },
+                new UoM { Name = "Case" },
+                new UoM { Name = "Piece" }
+            };
+
+            context.UoMs.AddRange(uoms);
+            await context.SaveChangesAsync();
+        }
+
+        private static async Task SeedProductsAsync(ApplicationDbContext context)
+        {
+            if (context.Products.Any()) return;
+
+            var kg = await context.UoMs.FirstAsync(x => x.Name == "Kilogram");
+            var liter = await context.UoMs.FirstAsync(x => x.Name == "Liter");
+            var bottle = await context.UoMs.FirstAsync(x => x.Name == "Bottle");
+
+            var beef = await context.Categories.FirstAsync(x => x.Name == "Beef");
+            var chicken = await context.Categories.FirstAsync(x => x.Name == "Chicken");
+            var seafood = await context.Categories.FirstAsync(x => x.Name == "Seafood");
+            var vegetables = await context.Categories.FirstAsync(x => x.Name == "Vegetables");
+            var dairy = await context.Categories.FirstAsync(x => x.Name == "Dairy");
+            var redWine = await context.Categories.FirstAsync(x => x.Name == "Red Wine");
+            var beer = await context.Categories.FirstAsync(x => x.Name == "Imported Beer");
+            var softDrink = await context.Categories.FirstAsync(x => x.Name == "Soft Drinks");
+            var spices = await context.Categories.FirstAsync(x => x.Name == "Spices");
+            var sauces = await context.Categories.FirstAsync(x => x.Name == "Sauces");
+
+            var products = new List<Product>
+            {
+                new Product { Name="Beef Tenderloin", SKU="BF001", CategoryId=beef.Id, BaseUoMId=kg.Id, MinStockLevel=5, IsPerishable=true },
+                new Product { Name="Ribeye Steak", SKU="BF002", CategoryId=beef.Id, BaseUoMId=kg.Id, MinStockLevel=5, IsPerishable=true },
+                new Product { Name="Chicken Breast", SKU="CK001", CategoryId=chicken.Id, BaseUoMId=kg.Id, MinStockLevel=10, IsPerishable=true },
+                new Product { Name="Whole Chicken", SKU="CK002", CategoryId=chicken.Id, BaseUoMId=kg.Id, MinStockLevel=8, IsPerishable=true },
+                new Product { Name="Salmon Fillet", SKU="SF001", CategoryId=seafood.Id, BaseUoMId=kg.Id, MinStockLevel=5, IsPerishable=true },
+                new Product { Name="Shrimp", SKU="SF002", CategoryId=seafood.Id, BaseUoMId=kg.Id, MinStockLevel=5, IsPerishable=true },
+                new Product { Name="Broccoli", SKU="VG001", CategoryId=vegetables.Id, BaseUoMId=kg.Id, MinStockLevel=5, IsPerishable=true },
+                new Product { Name="Carrot", SKU="VG002", CategoryId=vegetables.Id, BaseUoMId=kg.Id, MinStockLevel=5, IsPerishable=true },
+                new Product { Name="Onion", SKU="VG003", CategoryId=vegetables.Id, BaseUoMId=kg.Id, MinStockLevel=10, IsPerishable=true },
+                new Product { Name="Milk", SKU="DY001", CategoryId=dairy.Id, BaseUoMId=liter.Id, MinStockLevel=20, IsPerishable=true },
+                new Product { Name="Cheddar Cheese", SKU="DY002", CategoryId=dairy.Id, BaseUoMId=kg.Id, MinStockLevel=5, IsPerishable=true },
+                new Product { Name="Butter", SKU="DY003", CategoryId=dairy.Id, BaseUoMId=kg.Id, MinStockLevel=3, IsPerishable=true },
+                new Product { Name="Cabernet Sauvignon", SKU="RW001", CategoryId=redWine.Id, BaseUoMId=bottle.Id, MinStockLevel=24, IsPerishable=false },
+                new Product { Name="Merlot", SKU="RW002", CategoryId=redWine.Id, BaseUoMId=bottle.Id, MinStockLevel=24, IsPerishable=false },
+                new Product { Name="Imported Lager Beer", SKU="BR001", CategoryId=beer.Id, BaseUoMId=bottle.Id, MinStockLevel=48, IsPerishable=false },
+                new Product { Name="Coca Cola", SKU="SD001", CategoryId=softDrink.Id, BaseUoMId=bottle.Id, MinStockLevel=48, IsPerishable=false },
+                new Product { Name="Black Pepper", SKU="SP001", CategoryId=spices.Id, BaseUoMId=kg.Id, MinStockLevel=1, IsPerishable=false },
+                new Product { Name="Salt", SKU="SP002", CategoryId=spices.Id, BaseUoMId=kg.Id, MinStockLevel=5, IsPerishable=false },
+                new Product { Name="Olive Oil", SKU="SC001", CategoryId=sauces.Id, BaseUoMId=liter.Id, MinStockLevel=10, IsPerishable=false },
+                new Product { Name="Tomato Sauce", SKU="SC002", CategoryId=sauces.Id, BaseUoMId=liter.Id, MinStockLevel=10, IsPerishable=true }
+            };
+
+            context.Products.AddRange(products);
+            await context.SaveChangesAsync();
+        }
+
+        private static async Task SeedProductConversionsAsync(ApplicationDbContext context)
+        {
+            if (context.ProductUoMConversions.Any()) return;
+
+            var caseUom = await context.UoMs.FirstAsync(x => x.Name == "Case");
+            var bottle = await context.UoMs.FirstAsync(x => x.Name == "Bottle");
+            var gram = await context.UoMs.FirstAsync(x => x.Name == "Gram");
+            var kg = await context.UoMs.FirstAsync(x => x.Name == "Kilogram");
+            var ml = await context.UoMs.FirstAsync(x => x.Name == "Milliliter");
+            var liter = await context.UoMs.FirstAsync(x => x.Name == "Liter");
+
+            var beer = await context.Products.FirstAsync(x => x.SKU == "BR001");
+            var wine1 = await context.Products.FirstAsync(x => x.SKU == "RW001");
+            var wine2 = await context.Products.FirstAsync(x => x.SKU == "RW002");
+            var beef = await context.Products.FirstAsync(x => x.SKU == "BF001");
+            var milk = await context.Products.FirstAsync(x => x.SKU == "DY001");
+
+            var conversions = new List<ProductUoMConversion>
+            {
+                // Beer: 1 case = 12 bottle
+                new ProductUoMConversion { ProductId=beer.Id, FromUoMId=caseUom.Id, ToUoMId=bottle.Id, Factor=12 },
+
+                // Wine: 1 case = 6 bottle
+                new ProductUoMConversion { ProductId=wine1.Id, FromUoMId=caseUom.Id, ToUoMId=bottle.Id, Factor=6 },
+                new ProductUoMConversion { ProductId=wine2.Id, FromUoMId=caseUom.Id, ToUoMId=bottle.Id, Factor=6 },
+
+                // Beef: 1 kg = 1000 g
+                new ProductUoMConversion { ProductId=beef.Id, FromUoMId=kg.Id, ToUoMId=gram.Id, Factor=1000 },
+
+                // Milk: 1 liter = 1000 ml
+                new ProductUoMConversion { ProductId=milk.Id, FromUoMId=liter.Id, ToUoMId=ml.Id, Factor=1000 }
+            };
+
+            context.ProductUoMConversions.AddRange(conversions);
             await context.SaveChangesAsync();
         }
     }

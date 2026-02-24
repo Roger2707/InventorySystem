@@ -25,6 +25,11 @@ public class ApplicationDbContext : DbContext
     // Category entities
     public DbSet<Category> Categories { get; set; }
 
+    // Product entities
+    public DbSet<UoM> UoMs { get; set; }
+    public DbSet<Product> Products { get; set; }
+    public DbSet<ProductUoMConversion> ProductUoMConversions { get; set; }
+
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
         : base(options)
     {

@@ -13,7 +13,7 @@ public class CustomerConfiguration : BaseEntityConfiguration<Customer>
         // Table name
         builder.ToTable("Customers");
 
-        // WarehouseCode - Required, MaxLength 20, Unique
+        // CustomerCode - Required, MaxLength 20, Unique
         builder.Property(w => w.CustomerCode)
             .IsRequired()
             .HasMaxLength(20);
@@ -21,7 +21,7 @@ public class CustomerConfiguration : BaseEntityConfiguration<Customer>
         builder.HasIndex(w => w.CustomerCode)
             .IsUnique();
 
-        // WarehouseName - Required, MaxLength 100
+        // CustomerName - Required, MaxLength 100
         builder.Property(w => w.CustomerName)
             .IsRequired()
             .HasMaxLength(100);

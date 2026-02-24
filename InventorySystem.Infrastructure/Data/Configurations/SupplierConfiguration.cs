@@ -13,7 +13,7 @@ public class SupplierConfiguration : BaseEntityConfiguration<Supplier>
         // Table name
         builder.ToTable("Suppliers");
 
-        // WarehouseCode - Required, MaxLength 20, Unique
+        // SupplierCode - Required, MaxLength 20, Unique
         builder.Property(w => w.SupplierCode)
             .IsRequired()
             .HasMaxLength(20);
@@ -21,7 +21,7 @@ public class SupplierConfiguration : BaseEntityConfiguration<Supplier>
         builder.HasIndex(w => w.SupplierCode)
             .IsUnique();
 
-        // WarehouseName - Required, MaxLength 100
+        // SupplierName - Required, MaxLength 100
         builder.Property(w => w.SupplierName)
             .IsRequired()
             .HasMaxLength(100);

@@ -34,23 +34,31 @@ namespace InventorySystem.Infrastructure.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
 
                     b.Property<string>("Name")
-                        .HasColumnType("nvarchar(max)");
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<int?>("ParentId")
                         .HasColumnType("int");
 
                     b.Property<byte[]>("RowVersion")
-                        .HasColumnType("varbinary(max)");
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 
-                    b.ToTable("Categories");
+                    b.HasIndex("IsDeleted");
+
+                    b.ToTable("Categories", (string)null);
                 });
 
             modelBuilder.Entity("InventorySystem.Domain.Entities.Customer", b =>
@@ -378,6 +386,100 @@ namespace InventorySystem.Infrastructure.Migrations
                     b.ToTable("UserWarehouses", (string)null);
                 });
 
+            modelBuilder.Entity("InventorySystem.Domain.Entities.Product", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Barcode")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("BaseUoMId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CategoryId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsPerishable")
+                        .HasColumnType("bit");
+
+                    b.Property<decimal>("MinStockLevel")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("SKU")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BaseUoMId");
+
+                    b.HasIndex("CategoryId");
+
+                    b.HasIndex("IsDeleted");
+
+                    b.HasIndex("SKU")
+                        .IsUnique();
+
+                    b.ToTable("Products", (string)null);
+                });
+
+            modelBuilder.Entity("InventorySystem.Domain.Entities.ProductUoMConversion", b =>
+                {
+                    b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("FromUoMId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ToUoMId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Factor")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)");
+
+                    b.HasKey("ProductId", "FromUoMId", "ToUoMId");
+
+                    b.HasIndex("FromUoMId");
+
+                    b.HasIndex("ToUoMId");
+
+                    b.HasIndex("ProductId", "FromUoMId", "ToUoMId")
+                        .IsUnique();
+
+                    b.ToTable("ProductUoMConversions", (string)null);
+                });
+
             modelBuilder.Entity("InventorySystem.Domain.Entities.Region", b =>
                 {
                     b.Property<int>("Id")
@@ -479,6 +581,42 @@ namespace InventorySystem.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("Suppliers", (string)null);
+                });
+
+            modelBuilder.Entity("InventorySystem.Domain.Entities.UoM", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsDeleted");
+
+                    b.ToTable("UoMs", (string)null);
                 });
 
             modelBuilder.Entity("InventorySystem.Domain.Entities.Warehouse", b =>
@@ -623,6 +761,52 @@ namespace InventorySystem.Infrastructure.Migrations
                     b.Navigation("Warehouse");
                 });
 
+            modelBuilder.Entity("InventorySystem.Domain.Entities.Product", b =>
+                {
+                    b.HasOne("InventorySystem.Domain.Entities.UoM", "BaseUoM")
+                        .WithMany("Products")
+                        .HasForeignKey("BaseUoMId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("InventorySystem.Domain.Entities.Category", "Category")
+                        .WithMany()
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("BaseUoM");
+
+                    b.Navigation("Category");
+                });
+
+            modelBuilder.Entity("InventorySystem.Domain.Entities.ProductUoMConversion", b =>
+                {
+                    b.HasOne("InventorySystem.Domain.Entities.UoM", "FromUoM")
+                        .WithMany()
+                        .HasForeignKey("FromUoMId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("InventorySystem.Domain.Entities.Product", "Product")
+                        .WithMany("Conversions")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("InventorySystem.Domain.Entities.UoM", "ToUoM")
+                        .WithMany()
+                        .HasForeignKey("ToUoMId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("FromUoM");
+
+                    b.Navigation("Product");
+
+                    b.Navigation("ToUoM");
+                });
+
             modelBuilder.Entity("InventorySystem.Domain.Entities.Warehouse", b =>
                 {
                     b.HasOne("InventorySystem.Domain.Entities.Region", "Region")
@@ -654,9 +838,19 @@ namespace InventorySystem.Infrastructure.Migrations
                     b.Navigation("UserWarehouses");
                 });
 
+            modelBuilder.Entity("InventorySystem.Domain.Entities.Product", b =>
+                {
+                    b.Navigation("Conversions");
+                });
+
             modelBuilder.Entity("InventorySystem.Domain.Entities.Region", b =>
                 {
                     b.Navigation("UserRegions");
+                });
+
+            modelBuilder.Entity("InventorySystem.Domain.Entities.UoM", b =>
+                {
+                    b.Navigation("Products");
                 });
 
             modelBuilder.Entity("InventorySystem.Domain.Entities.Warehouse", b =>
