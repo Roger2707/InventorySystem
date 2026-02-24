@@ -10,11 +10,13 @@ public class UserService : IUserService
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly IPasswordHasher _passwordHasher;
+    private readonly IUserQueries _userQueries;
 
-    public UserService(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher)
+    public UserService(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher, IUserQueries userQueries)
     {
         _unitOfWork = unitOfWork;
         _passwordHasher = passwordHasher;
+        _userQueries = userQueries;
     }
 
     public async Task<Result<UserDto>> GetByIdAsync(int id, CancellationToken cancellationToken = default)
@@ -34,20 +36,8 @@ public class UserService : IUserService
 
     public async Task<Result<IEnumerable<UserDto>>> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        var users = await _unitOfWork.UserRepository.GetAllAsync(cancellationToken);
-        var userDtos = new List<UserDto>();
-
-        foreach (var user in users)
-        {
-            var userWithDetails = await _unitOfWork.UserRepository.GetWithRolesAsync(user.Id, cancellationToken);
-            if (userWithDetails != null)
-            {
-                var roles = userWithDetails.UserRoles.Select(ur => ur.Role.RoleName).Distinct().ToList();
-                userDtos.Add(MapToDto(userWithDetails, roles));
-            }
-        }
-
-        return Result<IEnumerable<UserDto>>.Success(userDtos);
+        var users = await _userQueries.GetUsersWithRolesAsync(cancellationToken);
+        return Result<IEnumerable<UserDto>>.Success(users);
     }
 
     public async Task<Result<UserDto>> CreateAsync(CreateUserDto createDto, CancellationToken cancellationToken = default)

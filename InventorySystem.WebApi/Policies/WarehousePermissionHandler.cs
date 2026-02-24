@@ -1,5 +1,5 @@
-﻿using InventorySystem.Application.Extensions;
-using InventorySystem.Application.Services;
+using InventorySystem.Application.Extensions;
+using InventorySystem.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 

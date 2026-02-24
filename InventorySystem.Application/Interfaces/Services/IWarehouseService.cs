@@ -1,7 +1,7 @@
 using InventorySystem.Application.DTOs.Warehouses;
 using InventorySystem.Domain.Common;
 
-namespace InventorySystem.Application.Services;
+namespace InventorySystem.Application.Interfaces;
 
 public interface IWarehouseService
 {

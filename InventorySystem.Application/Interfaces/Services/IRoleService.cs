@@ -1,7 +1,7 @@
 using InventorySystem.Application.DTOs.Identity;
 using InventorySystem.Domain.Common;
 
-namespace InventorySystem.Application.Services;
+namespace InventorySystem.Application.Interfaces;
 
 public interface IRoleService
 {

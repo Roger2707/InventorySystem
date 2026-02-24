@@ -1,5 +1,5 @@
-﻿using InventorySystem.Application.DTOs.Identity;
-using InventorySystem.Application.Services;
+using InventorySystem.Application.DTOs.Identity;
+using InventorySystem.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 

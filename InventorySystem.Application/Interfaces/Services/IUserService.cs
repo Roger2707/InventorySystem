@@ -2,7 +2,7 @@ using InventorySystem.Application.DTOs.Identity;
 using InventorySystem.Domain.Common;
 using InventorySystem.Domain.Entities.Identity;
 
-namespace InventorySystem.Application.Services;
+namespace InventorySystem.Application.Interfaces;
 
 public interface IUserService
 {
