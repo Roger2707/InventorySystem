@@ -9,6 +9,7 @@ public interface IUnitOfWork : IDisposable
     IPermissionRepository PermissionRepository { get; }
     ICustomerRepository CustomerRepository { get; }
     ISupplierRepository SupplierRepository { get; }
+    ICategoryRepository CategoryRepository { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     Task BeginTransactionAsync(CancellationToken cancellationToken = default);

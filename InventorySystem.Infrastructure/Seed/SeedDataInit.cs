@@ -46,6 +46,9 @@ namespace InventorySystem.Infrastructure.Seed
 
             if (!await context.Suppliers.AnyAsync())
                 await SeedSuppliersAsync(context);
+
+            if (!await context.Categories.AnyAsync())
+                await SeedCategoriesAsync(context);
         }
 
         private static async Task SeedUserAsyc(ApplicationDbContext context, IPasswordHasher hasher)
@@ -507,6 +510,52 @@ namespace InventorySystem.Infrastructure.Seed
 
             foreach (var c in suppliers)
                 context.Suppliers.Add(c);
+
+            await context.SaveChangesAsync();
+        }
+
+        private static async Task SeedCategoriesAsync(ApplicationDbContext context)
+        {
+            // ===== ROOT LEVEL =====
+            var electronics = new Category { Name = "Electronics" };
+            var fashion = new Category { Name = "Fashion" };
+            var home = new Category { Name = "Home" };
+
+            context.Categories.AddRange(electronics, fashion, home);
+            await context.SaveChangesAsync(); // Generate Ids
+
+            // ===== LEVEL 2 =====
+            var laptop = new Category { Name = "Laptop", ParentId = electronics.Id };
+            var mobile = new Category { Name = "Mobile Phones", ParentId = electronics.Id };
+
+            var men = new Category { Name = "Men", ParentId = fashion.Id };
+            var women = new Category { Name = "Women", ParentId = fashion.Id };
+
+            var furniture = new Category { Name = "Furniture", ParentId = home.Id };
+            var appliances = new Category { Name = "Appliances", ParentId = home.Id };
+
+            context.Categories.AddRange(
+                laptop, mobile,
+                men, women,
+                furniture, appliances
+            );
+            await context.SaveChangesAsync();
+
+            // ===== LEVEL 3 =====
+            var gaming = new Category { Name = "Gaming", ParentId = laptop.Id };
+            var office = new Category { Name = "Office", ParentId = laptop.Id };
+
+            var android = new Category { Name = "Android", ParentId = mobile.Id };
+            var iphone = new Category { Name = "iPhone", ParentId = mobile.Id };
+
+            var shirts = new Category { Name = "Shirts", ParentId = men.Id };
+            var pants = new Category { Name = "Pants", ParentId = men.Id };
+
+            context.Categories.AddRange(
+                gaming, office,
+                android, iphone,
+                shirts, pants
+            );
 
             await context.SaveChangesAsync();
         }
