@@ -668,8 +668,9 @@ namespace InventorySystem.Infrastructure.Seed
                 new ProductUoMConversion { ProductId=wine1.Id, FromUoMId=caseUom.Id, ToUoMId=bottle.Id, Factor=6 },
                 new ProductUoMConversion { ProductId=wine2.Id, FromUoMId=caseUom.Id, ToUoMId=bottle.Id, Factor=6 },
 
-                // Beef: 1 kg = 1000 g
+                // Beef: 1 kg = 1000 g , 1 case = 10 kg
                 new ProductUoMConversion { ProductId=beef.Id, FromUoMId=kg.Id, ToUoMId=gram.Id, Factor=1000 },
+                new ProductUoMConversion { ProductId=beef.Id, FromUoMId=kg.Id, ToUoMId=caseUom.Id, Factor=10 },
 
                 // Milk: 1 liter = 1000 ml
                 new ProductUoMConversion { ProductId=milk.Id, FromUoMId=liter.Id, ToUoMId=ml.Id, Factor=1000 }

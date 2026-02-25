@@ -3,7 +3,7 @@
     public class Product : BaseEntity
     {
         public string Name { get; set; } = default!;
-        public string SKU { get; set; } = default!;
+        public string? SKU { get; set; }
         public string? Barcode { get; set; }
 
         // Category
@@ -16,7 +16,7 @@
 
         public decimal MinStockLevel { get; set; }
 
-        public bool IsPerishable { get; set; }
+        public bool IsPerishable { get; set; } = true;
         public bool IsActive { get; set; } = true;
 
         // Conversion navigation

@@ -1,4 +1,5 @@
-﻿using InventorySystem.Application.DTOs.Products;
+﻿using Dapper;
+using InventorySystem.Application.DTOs.Products;
 using InventorySystem.Application.Interfaces;
 using InventorySystem.Application.Interfaces.Queries;
 using InventorySystem.Domain.Common;
@@ -14,7 +15,7 @@ namespace InventorySystem.Infrastructure.Queries
             _dapper = dapper;
         }
 
-        public async Task<Result<List<ProductDto>>> GetAllAsync(CancellationToken cancellationToken)
+        public async Task<IReadOnlyList<ProductDto>> GetAllAsync(CancellationToken cancellationToken)
         {
             const string query = @"
                                     SELECT
@@ -35,9 +36,9 @@ namespace InventorySystem.Infrastructure.Queries
 	                                    -- conversion
 
 	                                    , c.FromUoMId as UoMIdFrom
-	                                    , u_from.Name as UoMFromName
+	                                    , u_from.Name as UoMNameFrom
 	                                    , c.ToUoMId as UoMIdTo
-	                                    , u_to.Name as UoMToName
+	                                    , u_to.Name as UoMNameTo
 	                                    , c.Factor
 
                                     FROM Products p
@@ -48,22 +49,135 @@ namespace InventorySystem.Infrastructure.Queries
                                     LEFT JOIN UoMs u_from ON u_from.Id = c.FromUoMId
                                     LEFT JOIN UoMs u_to ON u_to.Id = c.ToUoMId
 
-                                    ORDER BY ProductId ASC
+                                    ORDER BY p.Id ASC
                                 ";
             
-            var product_rows = await _dapper.QueryAsync<ProductDto>(query);
+            var product_rows = await _dapper.QueryAsync<ProductRow>(query);
 
-            var productDtos = product_rows.ToList().Select(row => new ProductDto
-            {
+            var productDtos = product_rows
+                .GroupBy(x => x.Id)
+                .Select(g =>
+                {
+                    var first = g.First();
 
-            }).ToList();
+                    return new ProductDto
+                    {
+                        Id = first.Id,
+                        Name = first.Name,
+                        SKU = first.SKU,
+                        Barcode = first.Barcode,
+                        CategoryId = first.CategoryId,
+                        CategoryName = first.CategoryName,
+                        BaseUoMId = first.BaseUoMId,
+                        BaseUoMName = first.BaseUoMName,
+                        MinStockLevel = first.MinStockLevel,
+                        IsPerishable = first.IsPerishable,
+                        IsActive = first.IsActive,
+                        CreatedAt = first.CreatedAt,
+                        UpdatedAt = first.UpdatedAt,
 
-            return Result<List<ProductDto>>.Success(productDtos);
+                        ConversionDtos = g
+                            .Where(x => x.UoMIdFrom != 0)
+                            .Select(x => new ProductConversionDto
+                            {
+                                ProductId = first.Id,
+                                ProductName = first.Name,
+                                UoMIdFrom = x.UoMIdFrom,
+                                UoMNameFrom = x.UoMNameFrom,
+                                UoMIdTo = x.UoMIdTo,
+                                UoMNameTo = x.UoMNameTo,
+                                Factor = x.Factor
+                            })
+                            .ToList()
+                    };
+                })
+                .OrderBy(x => x.Id)
+                .ToList();
+
+            return productDtos;
         }
 
-        public Task<Result<ProductDto>> GetByIdAsync(int id, CancellationToken cancellationToken)
+        public async Task<ProductDto> GetByIdAsync(int id, CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            const string query = @"
+                                    SELECT
+	                                    p.Id
+	                                    , p.Name
+	                                    , p.SKU
+	                                    , p.Barcode
+	                                    , p.CategoryId
+	                                    , ct.Name as CategoryName
+	                                    , p.BaseUoMId
+	                                    , u_base.Name as BaseUoMName
+	                                    , p.MinStockLevel
+	                                    , p.IsDeleted
+	                                    , p.IsPerishable
+	                                    , p.CreatedAt
+	                                    , p.UpdatedAt
+
+	                                    -- conversion
+
+	                                    , c.FromUoMId as UoMIdFrom
+	                                    , u_from.Name as UoMNameFrom
+	                                    , c.ToUoMId as UoMIdTo
+	                                    , u_to.Name as UoMNameTo
+	                                    , c.Factor
+
+                                    FROM Products p
+
+                                    LEFT JOIN Categories ct ON ct.Id = p.CategoryId
+                                    LEFT JOIN ProductUoMConversions c ON c.ProductId = p.Id
+                                    LEFT JOIN UoMs u_base ON u_base.Id = p.BaseUoMId
+                                    LEFT JOIN UoMs u_from ON u_from.Id = c.FromUoMId
+                                    LEFT JOIN UoMs u_to ON u_to.Id = c.ToUoMId
+
+                                    WHERE p.Id = @Id
+
+                                    ORDER BY p.Id ASC
+                                ";
+
+            var product_rows = await _dapper.QueryAsync<ProductRow>(query, new {Id = id});
+
+            var productDtos = product_rows
+                .GroupBy(x => x.Id)
+                .Select(g =>
+                {
+                    var first = g.First();
+
+                    return new ProductDto
+                    {
+                        Id = first.Id,
+                        Name = first.Name,
+                        SKU = first.SKU,
+                        Barcode = first.Barcode,
+                        CategoryId = first.CategoryId,
+                        CategoryName = first.CategoryName,
+                        BaseUoMId = first.BaseUoMId,
+                        BaseUoMName = first.BaseUoMName,
+                        MinStockLevel = first.MinStockLevel,
+                        IsPerishable = first.IsPerishable,
+                        IsActive = first.IsActive,
+                        CreatedAt = first.CreatedAt,
+                        UpdatedAt = first.UpdatedAt,
+
+                        ConversionDtos = g
+                            .Where(x => x.UoMIdFrom != 0)
+                            .Select(x => new ProductConversionDto
+                            {
+                                ProductId = first.Id,
+                                ProductName = first.Name,
+                                UoMIdFrom = x.UoMIdFrom,
+                                UoMNameFrom = x.UoMNameFrom,
+                                UoMIdTo = x.UoMIdTo,
+                                UoMNameTo = x.UoMNameTo,
+                                Factor = x.Factor
+                            })
+                            .ToList()
+                    };
+                })
+                .ToList();
+
+            return productDtos[0];
         }
 
         private sealed class ProductRow
@@ -87,9 +201,9 @@ namespace InventorySystem.Infrastructure.Queries
             public DateTime? UpdatedAt { get; init; }
 
             public int UoMIdFrom { get; set; }
-            public string UoMFromName { get; set; }
+            public string UoMNameFrom { get; set; }
             public int UoMIdTo { get; set; }
-            public string UoMToName { get; set; }
+            public string UoMNameTo { get; set; }
             public decimal Factor { get; set; }
         }
     }
