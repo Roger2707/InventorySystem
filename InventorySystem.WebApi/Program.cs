@@ -72,11 +72,13 @@ builder.Services.AddScoped<ISupplierService, SupplierService>();
 
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IUoMService, UoMService>();
+builder.Services.AddScoped<IProductService, ProductService>();
 
 // Register Dapper query services (read-model)
 builder.Services.AddScoped<IDapperExecutor, DapperExecutor>();
 builder.Services.AddScoped<IUserQueries, UserQueries>();
 builder.Services.AddScoped<ICategoryQueries, CategoryQueries>();
+builder.Services.AddScoped<IProductQueries, ProductQueries>();
 
 // Register Identity services
 builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();

@@ -19,6 +19,7 @@ public class UnitOfWork : IUnitOfWork
     private ISupplierRepository? _supplierRepository;
     private ICategoryRepository? _categoryRepository;
     private IUoMRepository? _uomRepository;
+    private IProductRepository? _productRepository;
 
     public UnitOfWork(ApplicationDbContext context)
     {
@@ -135,6 +136,18 @@ public class UnitOfWork : IUnitOfWork
                 _uomRepository = new UoMRepository(_context);
             }
             return _uomRepository;
+        }
+    }
+
+    public IProductRepository ProductRepository
+    {
+        get
+        {
+            if (_productRepository == null)
+            {
+                _productRepository = new ProductRepository(_context);
+            }
+            return _productRepository;
         }
     }
 
