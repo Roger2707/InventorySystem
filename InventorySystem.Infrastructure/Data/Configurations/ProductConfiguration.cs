@@ -1,6 +1,6 @@
+using InventorySystem.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using InventorySystem.Domain.Entities;
 
 namespace InventorySystem.Infrastructure.Data.Configurations;
 
@@ -22,6 +22,13 @@ public class ProductConfiguration : BaseEntityConfiguration<Product>
             .HasMaxLength(50);
 
         builder.HasIndex(x => x.SKU)
+            .IsUnique();
+
+        builder.Property(p => p.Barcode)
+            .HasMaxLength(13)
+            .IsRequired();
+
+        builder.HasIndex(p => p.Barcode)
             .IsUnique();
 
         builder.Property(x => x.MinStockLevel)

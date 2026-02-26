@@ -6,11 +6,17 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace InventorySystem.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class createDB : Migration
+    public partial class createNewDB : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.CreateSequence<int>(
+                name: "ProductBarcodeSequence");
+
+            migrationBuilder.CreateSequence<int>(
+                name: "ProductSkuSequence");
+
             migrationBuilder.CreateTable(
                 name: "Categories",
                 columns: table => new
@@ -233,7 +239,7 @@ namespace InventorySystem.Infrastructure.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
                     SKU = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    Barcode = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Barcode = table.Column<string>(type: "nvarchar(13)", maxLength: 13, nullable: false),
                     CategoryId = table.Column<int>(type: "int", nullable: false),
                     BaseUoMId = table.Column<int>(type: "int", nullable: false),
                     MinStockLevel = table.Column<decimal>(type: "decimal(18,4)", precision: 18, scale: 4, nullable: false),
@@ -402,6 +408,12 @@ namespace InventorySystem.Infrastructure.Migrations
                 name: "IX_Permissions_PermissionName",
                 table: "Permissions",
                 column: "PermissionName",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Products_Barcode",
+                table: "Products",
+                column: "Barcode",
                 unique: true);
 
             migrationBuilder.CreateIndex(
@@ -600,6 +612,12 @@ namespace InventorySystem.Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "Regions");
+
+            migrationBuilder.DropSequence(
+                name: "ProductBarcodeSequence");
+
+            migrationBuilder.DropSequence(
+                name: "ProductSkuSequence");
         }
     }
 }

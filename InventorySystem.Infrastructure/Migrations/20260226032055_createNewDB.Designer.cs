@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace InventorySystem.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260225155140_update2")]
-    partial class update2
+    [Migration("20260226032055_createNewDB")]
+    partial class createNewDB
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -24,6 +24,10 @@ namespace InventorySystem.Infrastructure.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+
+            modelBuilder.HasSequence<int>("ProductBarcodeSequence");
+
+            modelBuilder.HasSequence<int>("ProductSkuSequence");
 
             modelBuilder.Entity("InventorySystem.Domain.Entities.Category", b =>
                 {
@@ -398,7 +402,9 @@ namespace InventorySystem.Infrastructure.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Barcode")
-                        .HasColumnType("nvarchar(max)");
+                        .IsRequired()
+                        .HasMaxLength(13)
+                        .HasColumnType("nvarchar(13)");
 
                     b.Property<int>("BaseUoMId")
                         .HasColumnType("int");
@@ -443,6 +449,9 @@ namespace InventorySystem.Infrastructure.Migrations
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Barcode")
+                        .IsUnique();
 
                     b.HasIndex("BaseUoMId");
 

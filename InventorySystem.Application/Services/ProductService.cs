@@ -11,11 +11,15 @@ namespace InventorySystem.Application.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IProductQueries _productQueries;
+        private readonly ISkuGenerator _skuGenerator;
+        private readonly IBarcodeGenerator _barcodeGenerator;
 
-        public ProductService(IUnitOfWork unitOfWork, IProductQueries productQueries)
+        public ProductService(IUnitOfWork unitOfWork, IProductQueries productQueries, ISkuGenerator skuGenerator, IBarcodeGenerator barcodeGenerator)
         {
             _unitOfWork = unitOfWork;
             _productQueries = productQueries;
+            _skuGenerator = skuGenerator;
+            _barcodeGenerator = barcodeGenerator;
         }
 
         public async Task<Result<List<ProductDto>>> GetAllAsync(CancellationToken cancellationToken)
@@ -40,43 +44,72 @@ namespace InventorySystem.Application.Services
             {
                 return Result<ProductDto>.Failure(validationMessage);
             }
+            var sku = await _skuGenerator.GenerateAsync(cancellationToken);
+            var barcode = await _barcodeGenerator.GenerateAsync(cancellationToken);
 
             var newProduct = new Product
             {
                 Name = createProductDto.Name,
-                Barcode = createProductDto.Barcode,
+                SKU = sku,
+                Barcode = barcode,
                 CategoryId = createProductDto.CategoryId,
                 BaseUoMId = createProductDto.BaseUoMId,
                 MinStockLevel = createProductDto.MinStockLevel,
             };
 
-            await _unitOfWork.ProductRepository.AddAsync(newProduct, cancellationToken);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
-
-            newProduct.SKU = GenerateSku(newProduct.Id);
             if(createProductDto.ConversionDtos.Any())
             {
-                var conversions = createProductDto.ConversionDtos.Select(c => new ProductUoMConversion
+                var conversions = createProductDto.ConversionDtos
+                .Select(c => new ProductUoMConversion
                 {
                     ProductId = newProduct.Id,
                     FromUoMId = c.FromUoMId,
                     ToUoMId = c.ToUoMId,
                     Factor = c.Factor
-                }).ToList();
-
+                })
+                .ToList();
                 newProduct.Conversions = conversions;
             }
 
-            await _unitOfWork.ProductRepository.UpdateAsync(newProduct, cancellationToken);
+            await _unitOfWork.ProductRepository.AddAsync(newProduct, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             var productDto = MapToDto(newProduct);
             return Result<ProductDto>.Success(productDto);
         }
 
-        public Task<Result<ProductDto>> UpdateAsync(int id, UpdateProductDto createProductDto, CancellationToken cancellationToken)
+        public async Task<Result<ProductDto>> UpdateAsync(int id, UpdateProductDto updateProductDto, CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            if(!IsDataValid(updateProductDto, out var validationMessage))
+            {
+                return Result<ProductDto>.Failure(validationMessage);
+            }
+            var existedProduct = await _unitOfWork.ProductRepository.GetWithConversionAsync(id, cancellationToken);
+
+            if(existedProduct == null)
+            {
+                return Result<ProductDto>.Failure($"Product with ID {id} not found.");
+            }
+            existedProduct.Name = updateProductDto.Name;
+            existedProduct.CategoryId = updateProductDto.CategoryId;
+            existedProduct.BaseUoMId = updateProductDto.BaseUoMId;
+            existedProduct.MinStockLevel = updateProductDto.MinStockLevel;
+
+            existedProduct.Conversions.Clear();
+            foreach (var dto in updateProductDto.ConversionDtos)
+            {
+                existedProduct.Conversions.Add(new ProductUoMConversion
+                {
+                    ProductId = existedProduct.Id,
+                    FromUoMId = dto.FromUoMId,
+                    ToUoMId = dto.ToUoMId,
+                    Factor = dto.Factor
+                });
+            }
+            await _unitOfWork.SaveChangesAsync();
+
+            var productDto = MapToDto(existedProduct);
+            return Result<ProductDto>.Success(productDto);
         }
 
         public async Task<Result> DeleteAsync(int id, CancellationToken cancellationToken)
@@ -127,9 +160,30 @@ namespace InventorySystem.Application.Services
             return true;
         }
 
-        private string GenerateSku(int productId)
+        private bool IsDataValid(UpdateProductDto updateProductDto, out string message)
         {
-            return $"PRD-{productId:D6}";
+            if (string.IsNullOrWhiteSpace(updateProductDto.Name))
+            {
+                message = "Product name is required.";
+                return false;
+            }
+            if (updateProductDto.MinStockLevel < 0)
+            {
+                message = "Min stock level cannot be negative.";
+                return false;
+            }
+            if (updateProductDto.CategoryId <= 0)
+            {
+                message = "Valid category ID is required.";
+                return false;
+            }
+            if (updateProductDto.BaseUoMId <= 0)
+            {
+                message = "Valid base UoM ID is required.";
+                return false;
+            }
+            message = string.Empty;
+            return true;
         }
 
         private ProductDto MapToDto(Product product)

@@ -37,7 +37,17 @@ public class ApplicationDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
-        
+
+        // Define a sequence for Product SKU generation
+        modelBuilder.HasSequence<int>("ProductSkuSequence")
+                    .StartsAt(1)
+                    .IncrementsBy(1);
+
+        // Define a sequence for Product Barcode generation
+        modelBuilder.HasSequence<int>("ProductBarcodeSequence")
+                    .StartsAt(1)
+                    .IncrementsBy(1);
+
         // Apply all entity configurations
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
         

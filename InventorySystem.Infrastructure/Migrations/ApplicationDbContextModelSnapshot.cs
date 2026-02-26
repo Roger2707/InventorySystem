@@ -22,6 +22,10 @@ namespace InventorySystem.Infrastructure.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.HasSequence<int>("ProductBarcodeSequence");
+
+            modelBuilder.HasSequence<int>("ProductSkuSequence");
+
             modelBuilder.Entity("InventorySystem.Domain.Entities.Category", b =>
                 {
                     b.Property<int>("Id")
@@ -395,7 +399,9 @@ namespace InventorySystem.Infrastructure.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Barcode")
-                        .HasColumnType("nvarchar(max)");
+                        .IsRequired()
+                        .HasMaxLength(13)
+                        .HasColumnType("nvarchar(13)");
 
                     b.Property<int>("BaseUoMId")
                         .HasColumnType("int");
@@ -440,6 +446,9 @@ namespace InventorySystem.Infrastructure.Migrations
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Barcode")
+                        .IsUnique();
 
                     b.HasIndex("BaseUoMId");
 

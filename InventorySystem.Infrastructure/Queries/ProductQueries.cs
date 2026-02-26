@@ -30,6 +30,7 @@ namespace InventorySystem.Infrastructure.Queries
 	                                    , p.MinStockLevel
 	                                    , p.IsDeleted
 	                                    , p.IsPerishable
+                                        , p.IsActive
 	                                    , p.CreatedAt
 	                                    , p.UpdatedAt
 
@@ -111,6 +112,7 @@ namespace InventorySystem.Infrastructure.Queries
 	                                    , u_base.Name as BaseUoMName
 	                                    , p.MinStockLevel
 	                                    , p.IsDeleted
+                                        , p.IsActive
 	                                    , p.IsPerishable
 	                                    , p.CreatedAt
 	                                    , p.UpdatedAt

@@ -1,6 +1,7 @@
 ﻿using InventorySystem.Application.Interfaces;
 using InventorySystem.Domain.Entities;
 using InventorySystem.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace InventorySystem.Infrastructure.Repositories
 {
@@ -8,6 +9,15 @@ namespace InventorySystem.Infrastructure.Repositories
     {
         public ProductRepository(ApplicationDbContext context) : base(context)
         {
+        }
+
+        public async Task<Product> GetWithConversionAsync(int id, CancellationToken cancellationToken = default)
+        {
+            var product = await _dbSet
+                .Include(p => p.Conversions)
+                .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
+
+            return product;
         }
     }
 }

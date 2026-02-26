@@ -616,26 +616,26 @@ namespace InventorySystem.Infrastructure.Seed
 
             var products = new List<Product>
             {
-                new Product { Name="Beef Tenderloin", SKU="BF001", CategoryId=beef.Id, BaseUoMId=kg.Id, MinStockLevel=5, IsPerishable=true },
-                new Product { Name="Ribeye Steak", SKU="BF002", CategoryId=beef.Id, BaseUoMId=kg.Id, MinStockLevel=5, IsPerishable=true },
-                new Product { Name="Chicken Breast", SKU="CK001", CategoryId=chicken.Id, BaseUoMId=kg.Id, MinStockLevel=10, IsPerishable=true },
-                new Product { Name="Whole Chicken", SKU="CK002", CategoryId=chicken.Id, BaseUoMId=kg.Id, MinStockLevel=8, IsPerishable=true },
-                new Product { Name="Salmon Fillet", SKU="SF001", CategoryId=seafood.Id, BaseUoMId=kg.Id, MinStockLevel=5, IsPerishable=true },
-                new Product { Name="Shrimp", SKU="SF002", CategoryId=seafood.Id, BaseUoMId=kg.Id, MinStockLevel=5, IsPerishable=true },
-                new Product { Name="Broccoli", SKU="VG001", CategoryId=vegetables.Id, BaseUoMId=kg.Id, MinStockLevel=5, IsPerishable=true },
-                new Product { Name="Carrot", SKU="VG002", CategoryId=vegetables.Id, BaseUoMId=kg.Id, MinStockLevel=5, IsPerishable=true },
-                new Product { Name="Onion", SKU="VG003", CategoryId=vegetables.Id, BaseUoMId=kg.Id, MinStockLevel=10, IsPerishable=true },
-                new Product { Name="Milk", SKU="DY001", CategoryId=dairy.Id, BaseUoMId=liter.Id, MinStockLevel=20, IsPerishable=true },
-                new Product { Name="Cheddar Cheese", SKU="DY002", CategoryId=dairy.Id, BaseUoMId=kg.Id, MinStockLevel=5, IsPerishable=true },
-                new Product { Name="Butter", SKU="DY003", CategoryId=dairy.Id, BaseUoMId=kg.Id, MinStockLevel=3, IsPerishable=true },
-                new Product { Name="Cabernet Sauvignon", SKU="RW001", CategoryId=redWine.Id, BaseUoMId=bottle.Id, MinStockLevel=24, IsPerishable=false },
-                new Product { Name="Merlot", SKU="RW002", CategoryId=redWine.Id, BaseUoMId=bottle.Id, MinStockLevel=24, IsPerishable=false },
-                new Product { Name="Imported Lager Beer", SKU="BR001", CategoryId=beer.Id, BaseUoMId=bottle.Id, MinStockLevel=48, IsPerishable=false },
-                new Product { Name="Coca Cola", SKU="SD001", CategoryId=softDrink.Id, BaseUoMId=bottle.Id, MinStockLevel=48, IsPerishable=false },
-                new Product { Name="Black Pepper", SKU="SP001", CategoryId=spices.Id, BaseUoMId=kg.Id, MinStockLevel=1, IsPerishable=false },
-                new Product { Name="Salt", SKU="SP002", CategoryId=spices.Id, BaseUoMId=kg.Id, MinStockLevel=5, IsPerishable=false },
-                new Product { Name="Olive Oil", SKU="SC001", CategoryId=sauces.Id, BaseUoMId=liter.Id, MinStockLevel=10, IsPerishable=false },
-                new Product { Name="Tomato Sauce", SKU="SC002", CategoryId=sauces.Id, BaseUoMId=liter.Id, MinStockLevel=10, IsPerishable=true }
+                new Product { Name="Beef Tenderloin", SKU="BF001", Barcode="8931234000017", CategoryId=beef.Id, BaseUoMId=kg.Id, MinStockLevel=5, IsPerishable=true },
+                new Product { Name="Ribeye Steak", SKU="BF002", Barcode="8931234000024", CategoryId=beef.Id, BaseUoMId=kg.Id, MinStockLevel=5, IsPerishable=true },
+                new Product { Name="Chicken Breast", SKU="CK001", Barcode="8931234000031", CategoryId=chicken.Id, BaseUoMId=kg.Id, MinStockLevel=10, IsPerishable=true },
+                new Product { Name="Whole Chicken", SKU="CK002", Barcode="8931234000048", CategoryId=chicken.Id, BaseUoMId=kg.Id, MinStockLevel=8, IsPerishable=true },
+                new Product { Name="Salmon Fillet", SKU="SF001", Barcode="8931234000055", CategoryId=seafood.Id, BaseUoMId=kg.Id, MinStockLevel=5, IsPerishable=true },
+                new Product { Name="Shrimp", SKU="SF002", Barcode="8931234000062", CategoryId=seafood.Id, BaseUoMId=kg.Id, MinStockLevel=5, IsPerishable=true },
+                new Product { Name="Broccoli", SKU="VG001", Barcode="8931234000079", CategoryId=vegetables.Id, BaseUoMId=kg.Id, MinStockLevel=5, IsPerishable=true },
+                new Product { Name="Carrot", SKU="VG002", Barcode="8931234000086", CategoryId=vegetables.Id, BaseUoMId=kg.Id, MinStockLevel=5, IsPerishable=true },
+                new Product { Name="Onion", SKU="VG003", Barcode="8931234000093", CategoryId=vegetables.Id, BaseUoMId=kg.Id, MinStockLevel=10, IsPerishable=true },
+                new Product { Name="Milk", SKU="DY001", Barcode="8931234000109", CategoryId=dairy.Id, BaseUoMId=liter.Id, MinStockLevel=20, IsPerishable=true },
+                new Product { Name="Cheddar Cheese", SKU="DY002", Barcode="8931234000116", CategoryId=dairy.Id, BaseUoMId=kg.Id, MinStockLevel=5, IsPerishable=true },
+                new Product { Name="Butter", SKU="DY003", Barcode="8931234000123", CategoryId=dairy.Id, BaseUoMId=kg.Id, MinStockLevel=3, IsPerishable=true },
+                new Product { Name="Cabernet Sauvignon", SKU="RW001", Barcode="8931234000130", CategoryId=redWine.Id, BaseUoMId=bottle.Id, MinStockLevel=24, IsPerishable=false },
+                new Product { Name="Merlot", SKU="RW002", Barcode="8931234000147", CategoryId=redWine.Id, BaseUoMId=bottle.Id, MinStockLevel=24, IsPerishable=false },
+                new Product { Name="Imported Lager Beer", SKU="BR001", Barcode="8931234000154", CategoryId=beer.Id, BaseUoMId=bottle.Id, MinStockLevel=48, IsPerishable=false },
+                new Product { Name="Coca Cola", SKU="SD001", Barcode="8931234000161", CategoryId=softDrink.Id, BaseUoMId=bottle.Id, MinStockLevel=48, IsPerishable=false },
+                new Product { Name="Black Pepper", SKU="SP001", Barcode="8931234000178", CategoryId=spices.Id, BaseUoMId=kg.Id, MinStockLevel=1, IsPerishable=false },
+                new Product { Name="Salt", SKU="SP002", Barcode="8931234000185", CategoryId=spices.Id, BaseUoMId=kg.Id, MinStockLevel=5, IsPerishable=false },
+                new Product { Name="Olive Oil", SKU="SC001", Barcode="8931234000192", CategoryId=sauces.Id, BaseUoMId=liter.Id, MinStockLevel=10, IsPerishable=false },
+                new Product { Name="Tomato Sauce", SKU="SC002", Barcode="8931234000208", CategoryId=sauces.Id, BaseUoMId=liter.Id, MinStockLevel=10, IsPerishable=true }
             };
 
             context.Products.AddRange(products);

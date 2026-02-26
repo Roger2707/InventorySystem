@@ -60,6 +60,8 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // Note: Repositories are created by UnitOfWork directly (not through DI)
 // This ensures all repositories use the same DbContext instance as UnitOfWork
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+builder.Services.AddScoped<ISkuGenerator, SKUGenerator>();
+builder.Services.AddScoped<IBarcodeGenerator, BarcodeGenerator>();
 
 // Register application services
 builder.Services.AddScoped<IWarehouseService, WarehouseService>();
