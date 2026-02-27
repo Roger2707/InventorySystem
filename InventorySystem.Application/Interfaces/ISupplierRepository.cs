@@ -1,4 +1,4 @@
-using InventorySystem.Domain.Entities;
+using InventorySystem.Domain.Entities.Suppliers;
 
 namespace InventorySystem.Application.Interfaces;
 

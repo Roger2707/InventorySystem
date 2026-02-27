@@ -1,6 +1,8 @@
 ﻿using InventorySystem.Application.Interfaces;
 using InventorySystem.Domain.Entities;
 using InventorySystem.Domain.Entities.Identity;
+using InventorySystem.Domain.Entities.Products;
+using InventorySystem.Domain.Entities.Suppliers;
 using InventorySystem.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;

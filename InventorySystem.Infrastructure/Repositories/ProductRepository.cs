@@ -1,5 +1,5 @@
 ﻿using InventorySystem.Application.Interfaces;
-using InventorySystem.Domain.Entities;
+using InventorySystem.Domain.Entities.Products;
 using InventorySystem.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 

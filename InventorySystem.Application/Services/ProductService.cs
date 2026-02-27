@@ -4,6 +4,7 @@ using InventorySystem.Application.Interfaces.Queries;
 using InventorySystem.Application.Interfaces.Services;
 using InventorySystem.Domain.Common;
 using InventorySystem.Domain.Entities;
+using InventorySystem.Domain.Entities.Products;
 
 namespace InventorySystem.Application.Services
 {

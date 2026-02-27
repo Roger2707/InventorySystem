@@ -20,6 +20,12 @@ public class UnitOfWork : IUnitOfWork
     private ICategoryRepository? _categoryRepository;
     private IUoMRepository? _uomRepository;
     private IProductRepository? _productRepository;
+    private IPurchaseOrderRepository? _purchaseOrderRepository;
+    private IGoodsReceiptRepository? _goodsReceiptRepository;
+    private IStockTransferRepository? _stockTransferRepository;
+    private IInventoryLedgerRepository? _inventoryLedgerRepository;
+    private IInventoryCostLayerRepository? _inventoryCostLayerRepository;
+    private ISupplierProductPriceRepository? _supplierProductPriceRepository;
 
     public UnitOfWork(ApplicationDbContext context)
     {
@@ -148,6 +154,78 @@ public class UnitOfWork : IUnitOfWork
                 _productRepository = new ProductRepository(_context);
             }
             return _productRepository;
+        }
+    }
+
+    public IPurchaseOrderRepository PurchaseOrderRepository
+    {
+        get
+        {
+            if (_purchaseOrderRepository == null)
+            {
+                _purchaseOrderRepository = new PurchaseOrderRepository(_context);
+            }
+            return _purchaseOrderRepository;
+        }
+    }
+
+    public IGoodsReceiptRepository GoodsReceiptRepository
+    {
+        get
+        {
+            if (_goodsReceiptRepository == null)
+            {
+                _goodsReceiptRepository = new GoodsReceiptRepository(_context);
+            }
+            return _goodsReceiptRepository;
+        }
+    }
+
+    public IStockTransferRepository StockTransferRepository
+    {
+        get
+        {
+            if (_stockTransferRepository == null)
+            {
+                _stockTransferRepository = new StockTransferRepository(_context);
+            }
+            return _stockTransferRepository;
+        }
+    }
+
+    public IInventoryLedgerRepository InventoryLedgerRepository
+    {
+        get
+        {
+            if (_inventoryLedgerRepository == null)
+            {
+                _inventoryLedgerRepository = new InventoryLedgerRepository(_context);
+            }
+            return _inventoryLedgerRepository;
+        }
+    }
+
+    public IInventoryCostLayerRepository InventoryCostLayerRepository
+    {
+        get
+        {
+            if (_inventoryCostLayerRepository == null)
+            {
+                _inventoryCostLayerRepository = new InventoryCostLayerRepository(_context);
+            }
+            return _inventoryCostLayerRepository;
+        }
+    }
+
+    public ISupplierProductPriceRepository SupplierProductPriceRepository
+    {
+        get
+        {
+            if (_supplierProductPriceRepository == null)
+            {
+                _supplierProductPriceRepository = new SupplierProductPriceRepository(_context);
+            }
+            return _supplierProductPriceRepository;
         }
     }
 

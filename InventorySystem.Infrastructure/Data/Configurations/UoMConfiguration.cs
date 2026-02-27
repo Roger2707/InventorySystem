@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using InventorySystem.Domain.Entities;
+using InventorySystem.Domain.Entities.Products;
 
 namespace InventorySystem.Infrastructure.Data.Configurations;
 

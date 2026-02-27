@@ -12,6 +12,12 @@ public interface IUnitOfWork : IDisposable
     ICategoryRepository CategoryRepository { get; }
     IUoMRepository UoMRepository { get; }
     IProductRepository ProductRepository { get; }
+    IPurchaseOrderRepository PurchaseOrderRepository { get; }
+    IGoodsReceiptRepository GoodsReceiptRepository { get; }
+    IStockTransferRepository StockTransferRepository { get; }
+    IInventoryLedgerRepository InventoryLedgerRepository { get; }
+    IInventoryCostLayerRepository InventoryCostLayerRepository { get; }
+    ISupplierProductPriceRepository SupplierProductPriceRepository { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     Task BeginTransactionAsync(CancellationToken cancellationToken = default);

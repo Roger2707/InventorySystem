@@ -1,4 +1,4 @@
-﻿namespace InventorySystem.Domain.Entities
+﻿namespace InventorySystem.Domain.Entities.Products
 {
     public class ProductUoMConversion
     {

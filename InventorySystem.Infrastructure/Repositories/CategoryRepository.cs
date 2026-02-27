@@ -1,5 +1,5 @@
 ﻿using InventorySystem.Application.Interfaces;
-using InventorySystem.Domain.Entities;
+using InventorySystem.Domain.Entities.Products;
 using InventorySystem.Infrastructure.Data;
 
 namespace InventorySystem.Infrastructure.Repositories

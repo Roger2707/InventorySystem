@@ -1,6 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using InventorySystem.Domain.Entities;
 using InventorySystem.Domain.Entities.Identity;
+using InventorySystem.Domain.Entities.Products;
+using InventorySystem.Domain.Entities.Suppliers;
+using InventorySystem.Domain.Entities.GoodsReceipt;
+using InventorySystem.Domain.Entities.Inventory;
+using InventorySystem.Domain.Entities.PurchaseOrder;
+using InventorySystem.Domain.Entities.StockTransfer;
 
 namespace InventorySystem.Infrastructure.Data;
 
@@ -29,6 +35,22 @@ public class ApplicationDbContext : DbContext
     public DbSet<UoM> UoMs { get; set; }
     public DbSet<Product> Products { get; set; }
     public DbSet<ProductUoMConversion> ProductUoMConversions { get; set; }
+
+    // Purchase Order entities
+    public DbSet<PurchaseOrder> PurchaseOrders { get; set; }
+
+    // Goods Receipt entities
+    public DbSet<GoodsReceipt> GoodsReceipts { get; set; }
+
+    // Stock Transfer entities
+    public DbSet<StockTransfer> StockTransfers { get; set; }
+
+    // Inventory entities
+    public DbSet<InventoryLedger> InventoryLedgers { get; set; }
+    public DbSet<InventoryCostLayer> InventoryCostLayers { get; set; }
+
+    // Supplier pricing
+    public DbSet<SupplierProductPrice> SupplierProductPrices { get; set; }
 
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
     {

@@ -76,6 +76,13 @@ builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IUoMService, UoMService>();
 builder.Services.AddScoped<IProductService, ProductService>();
 
+builder.Services.AddScoped<IPurchaseOrderService, PurchaseOrderService>();
+builder.Services.AddScoped<IGoodsReceiptService, GoodsReceiptService>();
+builder.Services.AddScoped<IStockTransferService, StockTransferService>();
+builder.Services.AddScoped<IInventoryLedgerService, InventoryLedgerService>();
+builder.Services.AddScoped<IInventoryCostLayerService, InventoryCostLayerService>();
+builder.Services.AddScoped<ISupplierProductPriceService, SupplierProductPriceService>();
+
 // Register Dapper query services (read-model)
 builder.Services.AddScoped<IDapperExecutor, DapperExecutor>();
 builder.Services.AddScoped<IUserQueries, UserQueries>();

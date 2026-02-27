@@ -1,10 +1,10 @@
-﻿namespace InventorySystem.Domain.Entities
+﻿namespace InventorySystem.Domain.Entities.Products
 {
     public class Product : BaseEntity
     {
         public string Name { get; set; } = default!;
-        public string? SKU { get; set; }
-        public string? Barcode { get; set; }
+        public string SKU { get; set; }
+        public string Barcode { get; set; }
 
         // Category
         public int CategoryId { get; set; }
