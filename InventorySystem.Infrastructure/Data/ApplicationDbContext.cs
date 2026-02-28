@@ -70,6 +70,14 @@ public class ApplicationDbContext : DbContext
                     .StartsAt(1)
                     .IncrementsBy(1);
 
+        modelBuilder.HasSequence<int>("PurchaseOrderSequence")
+            .StartsAt(10)
+            .IncrementsBy(1);
+
+        modelBuilder.HasSequence<int>("GoodsReceiptSequence")
+            .StartsAt(10)
+            .IncrementsBy(1);
+
         // Apply all entity configurations
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
         

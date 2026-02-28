@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace InventorySystem.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260226032055_createNewDB")]
-    partial class createNewDB
+    [Migration("20260228155926_createSequences")]
+    partial class createSequences
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -25,48 +25,13 @@ namespace InventorySystem.Infrastructure.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.HasSequence<int>("GoodsReceiptSequence");
+
             modelBuilder.HasSequence<int>("ProductBarcodeSequence");
 
             modelBuilder.HasSequence<int>("ProductSkuSequence");
 
-            modelBuilder.Entity("InventorySystem.Domain.Entities.Category", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsDeleted")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<int?>("ParentId")
-                        .HasColumnType("int");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("IsDeleted");
-
-                    b.ToTable("Categories", (string)null);
-                });
+            modelBuilder.HasSequence<int>("PurchaseOrderSequence");
 
             modelBuilder.Entity("InventorySystem.Domain.Entities.Customer", b =>
                 {
@@ -127,6 +92,100 @@ namespace InventorySystem.Infrastructure.Migrations
                     b.HasIndex("IsDeleted");
 
                     b.ToTable("Customers", (string)null);
+                });
+
+            modelBuilder.Entity("InventorySystem.Domain.Entities.GoodsReceipt.GoodsReceipt", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("PurchaseOrderId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ReceiptDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ReceiptNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("WarehouseId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsDeleted");
+
+                    b.ToTable("GoodsReceipts", (string)null);
+                });
+
+            modelBuilder.Entity("InventorySystem.Domain.Entities.GoodsReceipt.GoodsReceiptLine", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("GoodsReceiptId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PurchaseOrderLineId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("ReceivedQty")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<decimal>("UnitCost")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GoodsReceiptId");
+
+                    b.HasIndex("IsDeleted");
+
+                    b.ToTable("GoodsReceiptLines", (string)null);
                 });
 
             modelBuilder.Entity("InventorySystem.Domain.Entities.Identity.Permission", b =>
@@ -393,7 +452,151 @@ namespace InventorySystem.Infrastructure.Migrations
                     b.ToTable("UserWarehouses", (string)null);
                 });
 
-            modelBuilder.Entity("InventorySystem.Domain.Entities.Product", b =>
+            modelBuilder.Entity("InventorySystem.Domain.Entities.Inventory.InventoryCostLayer", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("RemainingQty")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("SourceReceiptLineId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("UnitCost")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("WarehouseId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsDeleted");
+
+                    b.ToTable("InventoryCostLayers", (string)null);
+                });
+
+            modelBuilder.Entity("InventorySystem.Domain.Entities.Inventory.InventoryLedger", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("QuantityIn")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("QuantityOut")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<int>("ReferenceId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ReferenceType")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<decimal>("TotalCost")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<DateTime>("TransactionDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("TransactionType")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("WarehouseId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsDeleted");
+
+                    b.ToTable("InventoryLedgers", (string)null);
+                });
+
+            modelBuilder.Entity("InventorySystem.Domain.Entities.Products.Category", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int?>("ParentId")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsDeleted");
+
+                    b.ToTable("Categories", (string)null);
+                });
+
+            modelBuilder.Entity("InventorySystem.Domain.Entities.Products.Product", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -465,7 +668,7 @@ namespace InventorySystem.Infrastructure.Migrations
                     b.ToTable("Products", (string)null);
                 });
 
-            modelBuilder.Entity("InventorySystem.Domain.Entities.ProductUoMConversion", b =>
+            modelBuilder.Entity("InventorySystem.Domain.Entities.Products.ProductUoMConversion", b =>
                 {
                     b.Property<int>("ProductId")
                         .HasColumnType("int");
@@ -490,6 +693,117 @@ namespace InventorySystem.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("ProductUoMConversions", (string)null);
+                });
+
+            modelBuilder.Entity("InventorySystem.Domain.Entities.Products.UoM", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsDeleted");
+
+                    b.ToTable("UoMs", (string)null);
+                });
+
+            modelBuilder.Entity("InventorySystem.Domain.Entities.PurchaseOrder.PurchaseOrder", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("ApprovedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("OrderDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("OrderNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SupplierId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsDeleted");
+
+                    b.ToTable("PurchaseOrders", (string)null);
+                });
+
+            modelBuilder.Entity("InventorySystem.Domain.Entities.PurchaseOrder.PurchaseOrderLine", b =>
+                {
+                    b.Property<int>("PurchaseOrderId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("OrderedQty")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("ReceivedQty")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.HasKey("PurchaseOrderId", "ProductId");
+
+                    b.ToTable("PurchaseOrderLines", (string)null);
                 });
 
             modelBuilder.Entity("InventorySystem.Domain.Entities.Region", b =>
@@ -534,7 +848,86 @@ namespace InventorySystem.Infrastructure.Migrations
                     b.ToTable("Regions", (string)null);
                 });
 
-            modelBuilder.Entity("InventorySystem.Domain.Entities.Supplier", b =>
+            modelBuilder.Entity("InventorySystem.Domain.Entities.StockTransfer.StockTransfer", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("FromWarehouseId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ToWarehouseId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("TransferNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsDeleted");
+
+                    b.ToTable("StockTransfers", (string)null);
+                });
+
+            modelBuilder.Entity("InventorySystem.Domain.Entities.StockTransfer.StockTransferLine", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Quantity")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .HasColumnType("varbinary(max)");
+
+                    b.Property<int>("StockTransferId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StockTransferId");
+
+                    b.ToTable("StockTransferLine");
+                });
+
+            modelBuilder.Entity("InventorySystem.Domain.Entities.Suppliers.Supplier", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -595,7 +988,7 @@ namespace InventorySystem.Infrastructure.Migrations
                     b.ToTable("Suppliers", (string)null);
                 });
 
-            modelBuilder.Entity("InventorySystem.Domain.Entities.UoM", b =>
+            modelBuilder.Entity("InventorySystem.Domain.Entities.Suppliers.SupplierProductPrice", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -606,20 +999,23 @@ namespace InventorySystem.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<bool>("IsDeleted")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
+                    b.Property<DateTime>("EffectiveDate")
+                        .HasColumnType("datetime2");
 
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("int");
 
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
@@ -628,7 +1024,7 @@ namespace InventorySystem.Infrastructure.Migrations
 
                     b.HasIndex("IsDeleted");
 
-                    b.ToTable("UoMs", (string)null);
+                    b.ToTable("SupplierProductPrices", (string)null);
                 });
 
             modelBuilder.Entity("InventorySystem.Domain.Entities.Warehouse", b =>
@@ -695,6 +1091,15 @@ namespace InventorySystem.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("Warehouses", (string)null);
+                });
+
+            modelBuilder.Entity("InventorySystem.Domain.Entities.GoodsReceipt.GoodsReceiptLine", b =>
+                {
+                    b.HasOne("InventorySystem.Domain.Entities.GoodsReceipt.GoodsReceipt", null)
+                        .WithMany("Lines")
+                        .HasForeignKey("GoodsReceiptId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("InventorySystem.Domain.Entities.Identity.RolePermission", b =>
@@ -773,15 +1178,15 @@ namespace InventorySystem.Infrastructure.Migrations
                     b.Navigation("Warehouse");
                 });
 
-            modelBuilder.Entity("InventorySystem.Domain.Entities.Product", b =>
+            modelBuilder.Entity("InventorySystem.Domain.Entities.Products.Product", b =>
                 {
-                    b.HasOne("InventorySystem.Domain.Entities.UoM", "BaseUoM")
+                    b.HasOne("InventorySystem.Domain.Entities.Products.UoM", "BaseUoM")
                         .WithMany("Products")
                         .HasForeignKey("BaseUoMId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("InventorySystem.Domain.Entities.Category", "Category")
+                    b.HasOne("InventorySystem.Domain.Entities.Products.Category", "Category")
                         .WithMany()
                         .HasForeignKey("CategoryId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -792,21 +1197,21 @@ namespace InventorySystem.Infrastructure.Migrations
                     b.Navigation("Category");
                 });
 
-            modelBuilder.Entity("InventorySystem.Domain.Entities.ProductUoMConversion", b =>
+            modelBuilder.Entity("InventorySystem.Domain.Entities.Products.ProductUoMConversion", b =>
                 {
-                    b.HasOne("InventorySystem.Domain.Entities.UoM", "FromUoM")
+                    b.HasOne("InventorySystem.Domain.Entities.Products.UoM", "FromUoM")
                         .WithMany()
                         .HasForeignKey("FromUoMId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("InventorySystem.Domain.Entities.Product", "Product")
+                    b.HasOne("InventorySystem.Domain.Entities.Products.Product", "Product")
                         .WithMany("Conversions")
                         .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("InventorySystem.Domain.Entities.UoM", "ToUoM")
+                    b.HasOne("InventorySystem.Domain.Entities.Products.UoM", "ToUoM")
                         .WithMany()
                         .HasForeignKey("ToUoMId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -819,6 +1224,24 @@ namespace InventorySystem.Infrastructure.Migrations
                     b.Navigation("ToUoM");
                 });
 
+            modelBuilder.Entity("InventorySystem.Domain.Entities.PurchaseOrder.PurchaseOrderLine", b =>
+                {
+                    b.HasOne("InventorySystem.Domain.Entities.PurchaseOrder.PurchaseOrder", null)
+                        .WithMany("Lines")
+                        .HasForeignKey("PurchaseOrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("InventorySystem.Domain.Entities.StockTransfer.StockTransferLine", b =>
+                {
+                    b.HasOne("InventorySystem.Domain.Entities.StockTransfer.StockTransfer", null)
+                        .WithMany("Lines")
+                        .HasForeignKey("StockTransferId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("InventorySystem.Domain.Entities.Warehouse", b =>
                 {
                     b.HasOne("InventorySystem.Domain.Entities.Region", "Region")
@@ -827,6 +1250,11 @@ namespace InventorySystem.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Region");
+                });
+
+            modelBuilder.Entity("InventorySystem.Domain.Entities.GoodsReceipt.GoodsReceipt", b =>
+                {
+                    b.Navigation("Lines");
                 });
 
             modelBuilder.Entity("InventorySystem.Domain.Entities.Identity.Permission", b =>
@@ -850,9 +1278,19 @@ namespace InventorySystem.Infrastructure.Migrations
                     b.Navigation("UserWarehouses");
                 });
 
-            modelBuilder.Entity("InventorySystem.Domain.Entities.Product", b =>
+            modelBuilder.Entity("InventorySystem.Domain.Entities.Products.Product", b =>
                 {
                     b.Navigation("Conversions");
+                });
+
+            modelBuilder.Entity("InventorySystem.Domain.Entities.Products.UoM", b =>
+                {
+                    b.Navigation("Products");
+                });
+
+            modelBuilder.Entity("InventorySystem.Domain.Entities.PurchaseOrder.PurchaseOrder", b =>
+                {
+                    b.Navigation("Lines");
                 });
 
             modelBuilder.Entity("InventorySystem.Domain.Entities.Region", b =>
@@ -860,9 +1298,9 @@ namespace InventorySystem.Infrastructure.Migrations
                     b.Navigation("UserRegions");
                 });
 
-            modelBuilder.Entity("InventorySystem.Domain.Entities.UoM", b =>
+            modelBuilder.Entity("InventorySystem.Domain.Entities.StockTransfer.StockTransfer", b =>
                 {
-                    b.Navigation("Products");
+                    b.Navigation("Lines");
                 });
 
             modelBuilder.Entity("InventorySystem.Domain.Entities.Warehouse", b =>

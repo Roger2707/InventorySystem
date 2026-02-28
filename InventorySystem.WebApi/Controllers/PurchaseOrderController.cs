@@ -17,7 +17,6 @@ public class PurchaseOrderController : ControllerBase
     }
 
     [HttpGet]
-    [Authorize]
     public async Task<ActionResult<IEnumerable<PurchaseOrderDto>>> GetAll(CancellationToken cancellationToken = default)
     {
         var result = await _purchaseOrderService.GetAllAsync(cancellationToken);
@@ -31,7 +30,6 @@ public class PurchaseOrderController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    [Authorize]
     public async Task<ActionResult<PurchaseOrderDto>> GetById(int id, CancellationToken cancellationToken = default)
     {
         var result = await _purchaseOrderService.GetByIdAsync(id, cancellationToken);

@@ -2,6 +2,7 @@
 {
     public class SupplierProductPrice : BaseEntity
     {
+        public int SupplierId { get; set; }
         public int ProductId { get; set; }
 
         public decimal UnitPrice { get; set; }

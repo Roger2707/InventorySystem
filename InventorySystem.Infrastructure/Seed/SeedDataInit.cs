@@ -2,7 +2,9 @@
 using InventorySystem.Domain.Entities;
 using InventorySystem.Domain.Entities.Identity;
 using InventorySystem.Domain.Entities.Products;
+using InventorySystem.Domain.Entities.PurchaseOrder;
 using InventorySystem.Domain.Entities.Suppliers;
+using InventorySystem.Domain.Enums;
 using InventorySystem.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -60,6 +62,12 @@ namespace InventorySystem.Infrastructure.Seed
 
             if (await context.Products.AnyAsync() && await context.UoMs.AnyAsync() && !await context.ProductUoMConversions.AnyAsync())
                 await SeedProductConversionsAsync(context);
+
+            if (!await context.SupplierProductPrices.AnyAsync())
+                await SeedSupplierProductPricesAsync(context);
+
+            if (!await context.PurchaseOrders.AnyAsync())
+                await SeedPurchaseOrdersAsync(context);
         }
 
         private static async Task SeedUserAsyc(ApplicationDbContext context, IPasswordHasher hasher)
@@ -679,6 +687,96 @@ namespace InventorySystem.Infrastructure.Seed
             };
 
             context.ProductUoMConversions.AddRange(conversions);
+            await context.SaveChangesAsync();
+        }
+
+        private static async Task SeedSupplierProductPricesAsync(ApplicationDbContext context)
+        {
+            if (context.SupplierProductPrices.Any()) return;
+
+            var random = new Random();
+
+            var supplierProductPrices = new List<SupplierProductPrice>();
+
+            for (int supplierId = 1; supplierId <= 10; supplierId++)
+            {
+                // mỗi supplier có giá cho 5–10 sản phẩm
+                var productCount = random.Next(5, 11);
+
+                var productIds = Enumerable.Range(1, 20)
+                                           .OrderBy(x => random.Next())
+                                           .Take(productCount)
+                                           .ToList();
+
+                foreach (var productId in productIds)
+                {
+                    var price = random.Next(50_000, 500_000);
+
+                    supplierProductPrices.Add(
+                        new SupplierProductPrice
+                        {
+                            ProductId = productId,
+                            SupplierId = supplierId,
+                            UnitPrice = price,
+                            EffectiveDate = DateTime.UtcNow.AddDays(-random.Next(1, 60))
+                        }
+                    );
+                }
+            }
+
+            context.SupplierProductPrices.AddRange(supplierProductPrices);
+            await context.SaveChangesAsync();
+        }
+
+        private static async Task SeedPurchaseOrdersAsync(ApplicationDbContext context)
+        {
+            if (context.PurchaseOrders.Any()) return;
+
+            var random = new Random();
+
+            var purchaseOrders = new List<PurchaseOrder>();
+
+            for (int i = 1; i <= 10; i++)
+            {
+                var orderDate = DateTime.UtcNow.AddDays(-random.Next(1, 30));
+
+                var po = new PurchaseOrder
+                {
+                    OrderNumber = $"PO-{DateTime.UtcNow:yyyyMMdd}-{i:D3}",
+                    SupplierId = random.Next(1, 6),
+                    Status = PurchaseOrderStatus.Approved,
+                    OrderDate = orderDate,
+                    ApprovedDate = orderDate.AddDays(1),
+                    Lines = new List<PurchaseOrderLine>()
+                };
+
+                int lineCount = random.Next(2, 5); // ít nhất 2 dòng
+
+                decimal totalAmount = 0;
+
+                for (int j = 0; j < lineCount; j++)
+                {
+                    var orderedQty = random.Next(10, 100);
+                    var unitPrice = random.Next(50_000, 500_000);
+
+                    var line = new PurchaseOrderLine
+                    {
+                        ProductId = random.Next(1, 21),
+                        OrderedQty = orderedQty,
+                        ReceivedQty = 0,
+                        UnitPrice = unitPrice
+                    };
+
+                    totalAmount += orderedQty * unitPrice;
+                    po.Lines.Add(line);
+                }
+
+                po.TotalAmount = totalAmount;
+
+                purchaseOrders.Add(po);
+            }
+
+            context.PurchaseOrders.AddRange(purchaseOrders);
             await context.SaveChangesAsync();
         }
     }

@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace InventorySystem.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260227070525_addMoreEntities")]
-    partial class addMoreEntities
+    [Migration("20260228160729_updateDB")]
+    partial class updateDB
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -25,9 +25,15 @@ namespace InventorySystem.Infrastructure.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.HasSequence<int>("GoodsReceiptSequence")
+                .StartsAt(10L);
+
             modelBuilder.HasSequence<int>("ProductBarcodeSequence");
 
             modelBuilder.HasSequence<int>("ProductSkuSequence");
+
+            modelBuilder.HasSequence<int>("PurchaseOrderSequence")
+                .StartsAt(10L);
 
             modelBuilder.Entity("InventorySystem.Domain.Entities.Customer", b =>
                 {
@@ -1008,6 +1014,9 @@ namespace InventorySystem.Infrastructure.Migrations
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
+
+                    b.Property<int>("SupplierId")
+                        .HasColumnType("int");
 
                     b.Property<decimal>("UnitPrice")
                         .HasPrecision(18, 4)

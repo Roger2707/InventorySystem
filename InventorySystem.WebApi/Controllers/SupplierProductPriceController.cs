@@ -17,7 +17,6 @@ public class SupplierProductPriceController : ControllerBase
     }
 
     [HttpGet]
-    [Authorize]
     public async Task<ActionResult<IEnumerable<SupplierProductPrice>>> GetAll(CancellationToken cancellationToken = default)
     {
         var result = await _supplierProductPriceService.GetAllAsync(cancellationToken);
@@ -31,7 +30,6 @@ public class SupplierProductPriceController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    [Authorize]
     public async Task<ActionResult<SupplierProductPrice>> GetById(int id, CancellationToken cancellationToken = default)
     {
         var result = await _supplierProductPriceService.GetByIdAsync(id, cancellationToken);

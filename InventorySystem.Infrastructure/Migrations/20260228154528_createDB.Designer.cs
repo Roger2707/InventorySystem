@@ -4,6 +4,7 @@ using InventorySystem.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace InventorySystem.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260228154528_createDB")]
+    partial class createDB
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -22,15 +25,9 @@ namespace InventorySystem.Infrastructure.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.HasSequence<int>("GoodsReceiptSequence")
-                .StartsAt(10L);
-
             modelBuilder.HasSequence<int>("ProductBarcodeSequence");
 
             modelBuilder.HasSequence<int>("ProductSkuSequence");
-
-            modelBuilder.HasSequence<int>("PurchaseOrderSequence")
-                .StartsAt(10L);
 
             modelBuilder.Entity("InventorySystem.Domain.Entities.Customer", b =>
                 {
@@ -1011,9 +1008,6 @@ namespace InventorySystem.Infrastructure.Migrations
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
-
-                    b.Property<int>("SupplierId")
-                        .HasColumnType("int");
 
                     b.Property<decimal>("UnitPrice")
                         .HasPrecision(18, 4)

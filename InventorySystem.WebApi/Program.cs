@@ -62,6 +62,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<ISkuGenerator, SKUGenerator>();
 builder.Services.AddScoped<IBarcodeGenerator, BarcodeGenerator>();
+builder.Services.AddScoped<IPurchaseOrderGenerator, PurchaseOrderGenerator>();
 
 // Register application services
 builder.Services.AddScoped<IWarehouseService, WarehouseService>();
