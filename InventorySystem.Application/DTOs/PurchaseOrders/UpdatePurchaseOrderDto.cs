@@ -1,12 +1,14 @@
 ﻿namespace InventorySystem.Application.DTOs.PurchaseOrders
 {
-    public class CreatePurchaseOrderDto
+    public class UpdatePurchaseOrderDto
     {
         public int SupplierId { get; set; }
-        public List<CreatePurchaseOrderLineDto> LinesDto { get; set; } = new();
+        public DateTime OrderDate { get; set; }
+
+        public List<UpdatePurchaseOrderLineDto> LinesDto { get; set; } = new();
     }
 
-    public class CreatePurchaseOrderLineDto
+    public class UpdatePurchaseOrderLineDto
     {
         public int ProductId { get; set; }
         public decimal OrderedQty { get; set; }

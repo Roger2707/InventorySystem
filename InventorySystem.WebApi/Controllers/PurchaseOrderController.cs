@@ -1,6 +1,5 @@
 using InventorySystem.Application.DTOs.PurchaseOrders;
 using InventorySystem.Application.Interfaces.Services;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace InventorySystem.WebApi.Controllers;
@@ -39,6 +38,63 @@ public class PurchaseOrderController : ControllerBase
             return NotFound(result.ErrorMessage);
         }
 
+        return Ok(result.Data);
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<PurchaseOrderDto>> Create([FromBody] CreatePurchaseOrderDto createPurchaseOrder, CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        var result = await _purchaseOrderService.CreateAsync(createPurchaseOrder, cancellationToken);
+        if (!result.IsSuccess)
+        {
+            return BadRequest(result.ErrorMessage);
+        }
+        return CreatedAtAction(nameof(GetById), new { id = result.Data!.Id }, result.Data);
+    }
+
+    [HttpPut("{id}")]
+    public async Task<ActionResult<PurchaseOrderDto>> Update(int id, [FromBody] UpdatePurchaseOrderDto updateDto, CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        var result = await _purchaseOrderService.UpdateAsync(id, updateDto, cancellationToken);
+
+        if (!result.IsSuccess)
+        {
+            if (result.ErrorMessage?.Contains("not found") == true)
+            {
+                return NotFound(result.ErrorMessage);
+            }
+            return BadRequest(result.ErrorMessage);
+        }
+
+        return Ok(result.Data);
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<ActionResult> Delete(int id, CancellationToken cancellationToken = default)
+    {
+        var result = await _purchaseOrderService.DeleteAsync(id, cancellationToken);
+
+        if (!result.IsSuccess)
+        {
+            return NotFound(result.ErrorMessage);
+        }
+        return NoContent();
+    }
+
+    [HttpGet("{id}/exists")]
+    public async Task<ActionResult<bool>> Exists(int id, CancellationToken cancellationToken = default)
+    {
+        var result = await _purchaseOrderService.ExistAsync(id, cancellationToken);
         return Ok(result.Data);
     }
 }

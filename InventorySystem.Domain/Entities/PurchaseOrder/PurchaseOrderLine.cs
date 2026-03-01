@@ -6,7 +6,7 @@
         public int ProductId { get; set; }
 
         public decimal OrderedQty { get; set; }
-        public decimal ReceivedQty { get; set; }
+        public decimal ReceivedQty { get; set; } = 0;
 
         public decimal UnitPrice { get; set; }
 

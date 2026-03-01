@@ -1,4 +1,5 @@
 using InventorySystem.Application.DTOs.PurchaseOrders;
+using InventorySystem.Application.Extensions;
 using InventorySystem.Application.Interfaces;
 using InventorySystem.Application.Interfaces.Services;
 using InventorySystem.Domain.Common;
@@ -58,7 +59,7 @@ public class PurchaseOrderService : IPurchaseOrderService
                 ProductId = pol.ProductId,
                 OrderedQty = pol.OrderedQty,
                 UnitPrice = unitPrice,
-                ReceivedQty = 0,          
+                ReceivedQty = 0,
             };
 
             lines.Add(line);
@@ -80,6 +81,60 @@ public class PurchaseOrderService : IPurchaseOrderService
         return Result<PurchaseOrderDto>.Success(dto);
     }
 
+    public async Task<Result<PurchaseOrderDto>> UpdateAsync(int id, UpdatePurchaseOrderDto updatePurchaseOrder, CancellationToken cancellationToken = default)
+    {
+        var exist = await _unitOfWork.PurchaseOrderRepository.GetByIdAsync(id, cancellationToken);
+        if (exist == null)
+            return Result<PurchaseOrderDto>.Failure($"PurchaseOrder with ID {id} not found.");
+
+        var lineParams = new List<(int ProductId, decimal OrderedQty, decimal UnitPrice)>();
+        foreach (var line in updatePurchaseOrder.LinesDto)
+        {
+            if (!await _unitOfWork.ProductRepository.ExistsAsync(p => p.Id == line.ProductId))
+                return Result<PurchaseOrderDto>.Failure($"Product Id : {line.ProductId} is not existed .");
+
+            var unitPrice = await _unitOfWork.SupplierProductPriceRepository.GetTopUnitPrice(updatePurchaseOrder.SupplierId, line.ProductId, cancellationToken);
+            
+            lineParams.Add((line.ProductId, line.OrderedQty, unitPrice));
+        }
+
+        exist.Update(
+            updatePurchaseOrder.SupplierId, 
+            updatePurchaseOrder.OrderDate,
+            lineParams.Select(l => (CF.GetInt(l.ProductId), CF.GetDecimal(l.OrderedQty), CF.GetDecimal(l.UnitPrice))).ToList());
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return Result<PurchaseOrderDto>.Success(MapToDto(exist));
+    }
+
+    public async Task<Result<PurchaseOrderDto>> ApprovePurchaseOrderAsync(int id, CancellationToken cancellationToken = default)
+    {
+        var po = await _unitOfWork.PurchaseOrderRepository.GetByIdAsync(id, cancellationToken);
+        if (po == null)
+            return Result<PurchaseOrderDto>.Failure($"PurchaseOrder with ID {id} not found.");
+
+        // Ensure the PO is in a state that can be approved
+        po.Approve();
+
+        // After approve, we have to create goods_receipt
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        var dto = MapToDto(po);
+        return Result<PurchaseOrderDto>.Success(dto);
+    }
+
+    public Task<Result> DeleteAsync(int id, CancellationToken cancellationToken = default)
+    {
+        throw new NotImplementedException();
+    }
+
+    public async Task<Result<bool>> ExistAsync(int id, CancellationToken cancellationToken = default)
+    {
+        var exists = await _unitOfWork.PurchaseOrderRepository.ExistsAsync(po => po.Id == id, cancellationToken);
+        return Result<bool>.Success(exists);
+    }
 
     #region Helpers
 
