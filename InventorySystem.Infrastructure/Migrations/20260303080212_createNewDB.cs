@@ -6,16 +6,24 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace InventorySystem.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class createDB : Migration
+    public partial class createNewDB : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateSequence<int>(
+                name: "GoodsReceiptSequence",
+                startValue: 10L);
+
+            migrationBuilder.CreateSequence<int>(
                 name: "ProductBarcodeSequence");
 
             migrationBuilder.CreateSequence<int>(
                 name: "ProductSkuSequence");
+
+            migrationBuilder.CreateSequence<int>(
+                name: "PurchaseOrderSequence",
+                startValue: 10L);
 
             migrationBuilder.CreateTable(
                 name: "Categories",
@@ -230,6 +238,7 @@ namespace InventorySystem.Infrastructure.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
+                    SupplierId = table.Column<int>(type: "int", nullable: false),
                     ProductId = table.Column<int>(type: "int", nullable: false),
                     UnitPrice = table.Column<decimal>(type: "decimal(18,4)", precision: 18, scale: 4, nullable: false),
                     EffectiveDate = table.Column<DateTime>(type: "datetime2", nullable: false),
@@ -887,10 +896,16 @@ namespace InventorySystem.Infrastructure.Migrations
                 name: "Regions");
 
             migrationBuilder.DropSequence(
+                name: "GoodsReceiptSequence");
+
+            migrationBuilder.DropSequence(
                 name: "ProductBarcodeSequence");
 
             migrationBuilder.DropSequence(
                 name: "ProductSkuSequence");
+
+            migrationBuilder.DropSequence(
+                name: "PurchaseOrderSequence");
         }
     }
 }

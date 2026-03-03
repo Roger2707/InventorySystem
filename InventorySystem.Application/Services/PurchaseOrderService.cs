@@ -83,7 +83,7 @@ public class PurchaseOrderService : IPurchaseOrderService
 
     public async Task<Result<PurchaseOrderDto>> UpdateAsync(int id, UpdatePurchaseOrderDto updatePurchaseOrder, CancellationToken cancellationToken = default)
     {
-        var exist = await _unitOfWork.PurchaseOrderRepository.GetByIdAsync(id, cancellationToken);
+        var exist = await _unitOfWork.PurchaseOrderRepository.GetWithLinesAsync(id, cancellationToken);
         if (exist == null)
             return Result<PurchaseOrderDto>.Failure($"PurchaseOrder with ID {id} not found.");
 
@@ -101,6 +101,7 @@ public class PurchaseOrderService : IPurchaseOrderService
         exist.Update(
             updatePurchaseOrder.SupplierId, 
             updatePurchaseOrder.OrderDate,
+            exist.Lines?.ToList(),
             lineParams.Select(l => (CF.GetInt(l.ProductId), CF.GetDecimal(l.OrderedQty), CF.GetDecimal(l.UnitPrice))).ToList());
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);

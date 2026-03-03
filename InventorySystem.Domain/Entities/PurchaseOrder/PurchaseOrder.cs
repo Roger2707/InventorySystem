@@ -29,7 +29,7 @@ namespace InventorySystem.Domain.Entities.PurchaseOrder
             ApprovedDate = DateTime.UtcNow;
         }
 
-        public void Update(int supplierId, DateTime orderDate, List<(int ProductId, decimal OrderQty, decimal UnitPrice)> updatedLines)
+        public void Update(int supplierId, DateTime orderDate, List<PurchaseOrderLine> existedLines, List<(int ProductId, decimal OrderQty, decimal UnitPrice)> updatedLines)
         {
             if (Status != PurchaseOrderStatus.Draft)
                 throw new Exception("Only Draft Status can be update !");
@@ -40,6 +40,7 @@ namespace InventorySystem.Domain.Entities.PurchaseOrder
             // Update PO
             SupplierId = supplierId;
             OrderDate = orderDate;
+            Lines = existedLines ?? new List<PurchaseOrderLine>();
 
             #region Update PO Lines
 
@@ -71,6 +72,8 @@ namespace InventorySystem.Domain.Entities.PurchaseOrder
                         OrderedQty = updateLine.OrderQty,
                         UnitPrice = updateLine.UnitPrice,
                     };
+
+                    Lines.Add(newLine);
                 }
             }
 

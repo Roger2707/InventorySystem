@@ -750,18 +750,22 @@ namespace InventorySystem.Infrastructure.Seed
                     Lines = new List<PurchaseOrderLine>()
                 };
 
-                int lineCount = random.Next(2, 5); // ít nhất 2 dòng
-
+                int lineCount = random.Next(2, 5);
                 decimal totalAmount = 0;
 
-                for (int j = 0; j < lineCount; j++)
+                var productIds = Enumerable.Range(1, 20)
+                    .OrderBy(x => random.Next())
+                    .Take(lineCount)
+                    .ToList();
+
+                foreach (var productId in productIds)
                 {
                     var orderedQty = random.Next(10, 100);
                     var unitPrice = random.Next(50_000, 500_000);
 
                     var line = new PurchaseOrderLine
                     {
-                        ProductId = random.Next(1, 21),
+                        ProductId = productId,
                         OrderedQty = orderedQty,
                         ReceivedQty = 0,
                         UnitPrice = unitPrice
@@ -772,7 +776,6 @@ namespace InventorySystem.Infrastructure.Seed
                 }
 
                 po.TotalAmount = totalAmount;
-
                 purchaseOrders.Add(po);
             }
 
