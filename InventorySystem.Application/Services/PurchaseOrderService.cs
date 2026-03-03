@@ -101,7 +101,6 @@ public class PurchaseOrderService : IPurchaseOrderService
         exist.Update(
             updatePurchaseOrder.SupplierId, 
             updatePurchaseOrder.OrderDate,
-            exist.Lines?.ToList(),
             lineParams.Select(l => (CF.GetInt(l.ProductId), CF.GetDecimal(l.OrderedQty), CF.GetDecimal(l.UnitPrice))).ToList());
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -126,9 +125,16 @@ public class PurchaseOrderService : IPurchaseOrderService
         return Result<PurchaseOrderDto>.Success(dto);
     }
 
-    public Task<Result> DeleteAsync(int id, CancellationToken cancellationToken = default)
+    public async Task<Result> DeleteAsync(int id, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var po = await _unitOfWork.PurchaseOrderRepository.GetByIdAsync(id, cancellationToken);
+        if (po == null)
+            return Result.Failure($"PurchaseOrder with ID {id} not found.");
+
+        po.Delete();
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        return Result.Success();
     }
 
     public async Task<Result<bool>> ExistAsync(int id, CancellationToken cancellationToken = default)

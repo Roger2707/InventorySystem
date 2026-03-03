@@ -63,6 +63,7 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<ISkuGenerator, SKUGenerator>();
 builder.Services.AddScoped<IBarcodeGenerator, BarcodeGenerator>();
 builder.Services.AddScoped<IPurchaseOrderGenerator, PurchaseOrderGenerator>();
+builder.Services.AddScoped<IGoodsReceiptGenerator, GoodsReceiptGenerator>();
 
 // Register application services
 builder.Services.AddScoped<IWarehouseService, WarehouseService>();

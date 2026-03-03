@@ -2,15 +2,15 @@
 {
     public class GoodsReceiptLine : BaseEntity
     {
-        public int GoodsReceiptId { get; private set; }
-        public int PurchaseOrderLineId { get; private set; }
+        public int GoodsReceiptId { get; set; }
+        public int PurchaseOrderId { get; set; }
 
-        public int ProductId { get; private set; }
+        public int ProductId { get; set; }
 
-        public decimal ReceivedQty { get; private set; }
+        public decimal ReceivedQty { get; set; }
 
-        // Giá thực tế dùng cho FIFO
-        public decimal UnitCost { get; private set; }
+        // Realistic Price for FIFO
+        public decimal UnitCost { get; set; }
 
         public decimal LineTotal => ReceivedQty * UnitCost;
     }
