@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace InventorySystem.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260303135057_createDB")]
+    [Migration("20260304154937_createDB")]
     partial class createDB
     {
         /// <inheritdoc />
@@ -129,6 +129,9 @@ namespace InventorySystem.Infrastructure.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
+                    b.Property<decimal>("TotalAmount")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
@@ -144,48 +147,24 @@ namespace InventorySystem.Infrastructure.Migrations
 
             modelBuilder.Entity("InventorySystem.Domain.Entities.GoodsReceipt.GoodsReceiptLine", b =>
                 {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
                     b.Property<int>("GoodsReceiptId")
                         .HasColumnType("int");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
 
                     b.Property<int>("ProductId")
                         .HasColumnType("int");
 
-                    b.Property<int>("PurchaseOrderLineId")
+                    b.Property<int>("PurchaseOrderId")
                         .HasColumnType("int");
 
                     b.Property<decimal>("ReceivedQty")
                         .HasPrecision(18, 4)
                         .HasColumnType("decimal(18,4)");
 
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
                     b.Property<decimal>("UnitCost")
                         .HasPrecision(18, 4)
                         .HasColumnType("decimal(18,4)");
 
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("GoodsReceiptId");
-
-                    b.HasIndex("IsDeleted");
+                    b.HasKey("GoodsReceiptId", "ProductId");
 
                     b.ToTable("GoodsReceiptLines", (string)null);
                 });

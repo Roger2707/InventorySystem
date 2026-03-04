@@ -76,6 +76,7 @@ namespace InventorySystem.Infrastructure.Migrations
                     WarehouseId = table.Column<int>(type: "int", nullable: false),
                     Status = table.Column<int>(type: "int", nullable: false),
                     ReceiptDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    TotalAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     IsDeleted = table.Column<bool>(type: "bit", nullable: false),
@@ -318,21 +319,15 @@ namespace InventorySystem.Infrastructure.Migrations
                 name: "GoodsReceiptLines",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
                     GoodsReceiptId = table.Column<int>(type: "int", nullable: false),
-                    PurchaseOrderLineId = table.Column<int>(type: "int", nullable: false),
                     ProductId = table.Column<int>(type: "int", nullable: false),
+                    PurchaseOrderId = table.Column<int>(type: "int", nullable: false),
                     ReceivedQty = table.Column<decimal>(type: "decimal(18,4)", precision: 18, scale: 4, nullable: false),
-                    UnitCost = table.Column<decimal>(type: "decimal(18,4)", precision: 18, scale: 4, nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "bit", nullable: false),
-                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: true)
+                    UnitCost = table.Column<decimal>(type: "decimal(18,4)", precision: 18, scale: 4, nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_GoodsReceiptLines", x => x.Id);
+                    table.PrimaryKey("PK_GoodsReceiptLines", x => new { x.GoodsReceiptId, x.ProductId });
                     table.ForeignKey(
                         name: "FK_GoodsReceiptLines_GoodsReceipts_GoodsReceiptId",
                         column: x => x.GoodsReceiptId,
@@ -602,16 +597,6 @@ namespace InventorySystem.Infrastructure.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_Customers_IsDeleted",
                 table: "Customers",
-                column: "IsDeleted");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_GoodsReceiptLines_GoodsReceiptId",
-                table: "GoodsReceiptLines",
-                column: "GoodsReceiptId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_GoodsReceiptLines_IsDeleted",
-                table: "GoodsReceiptLines",
                 column: "IsDeleted");
 
             migrationBuilder.CreateIndex(

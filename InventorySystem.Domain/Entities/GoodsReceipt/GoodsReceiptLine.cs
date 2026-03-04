@@ -1,6 +1,6 @@
 ﻿namespace InventorySystem.Domain.Entities.GoodsReceipt
 {
-    public class GoodsReceiptLine : BaseEntity
+    public class GoodsReceiptLine
     {
         public int GoodsReceiptId { get; set; }
         public int PurchaseOrderId { get; set; }

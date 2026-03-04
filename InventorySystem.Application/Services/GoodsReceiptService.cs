@@ -73,6 +73,13 @@ public class GoodsReceiptService : IGoodsReceiptService
         }
 
         var receiptNumber = await _goodsReceiptGenerator.GenerateAsync(cancellationToken);
+        var lines = createGoodsReceipt.LinesDto.Select(l => new GoodsReceiptLine
+        {
+            PurchaseOrderId = poExist.Id,
+            ProductId = l.ProductId,
+            ReceivedQty = l.ReceivedQty,
+            UnitCost = poExist.Lines.FirstOrDefault(pol => pol.ProductId == l.ProductId).UnitPrice,
+        }).ToList();
 
         var entity = new GoodsReceipt
         {
@@ -81,13 +88,8 @@ public class GoodsReceiptService : IGoodsReceiptService
             WarehouseId = createGoodsReceipt.WarehouseId,
             ReceiptDate = DateTime.UtcNow,
             Status = ReceiptStatus.Draft,
-            Lines = createGoodsReceipt.LinesDto.Select(l => new GoodsReceiptLine
-            {
-                PurchaseOrderId = poExist.Id,
-                ProductId = l.ProductId,
-                ReceivedQty = l.ReceivedQty,
-                UnitCost = l.UnitCost
-            }).ToList()
+            Lines = lines,
+            TotalAmount = lines.Sum(l => l.LineTotal)
         };
 
         await _unitOfWork.GoodsReceiptRepository.AddAsync(entity, cancellationToken);
@@ -103,38 +105,29 @@ public class GoodsReceiptService : IGoodsReceiptService
         if (exist == null)
             return Result<GoodsReceiptDto>.Failure($"GoodsReceipt with ID {id} not found.");
 
-        var poExist = await _unitOfWork.PurchaseOrderRepository.GetWithLinesAsync(updateGoodsReceipt.PurchaseOrderId, cancellationToken);
+        var poExist = await _unitOfWork.PurchaseOrderRepository.GetWithLinesAsync(exist.PurchaseOrderId, cancellationToken);
         if (poExist == null)
-            return Result<GoodsReceiptDto>.Failure($"PurchaseOrder with ID {updateGoodsReceipt.PurchaseOrderId} not found.");
+            return Result<GoodsReceiptDto>.Failure($"PurchaseOrder with ID {exist.PurchaseOrderId} not found.");
 
         var warehouseExist = await _unitOfWork.WarehouseRepository.ExistsAsync(w => w.Id == updateGoodsReceipt.WarehouseId, cancellationToken);
         if (!warehouseExist)
             return Result<GoodsReceiptDto>.Failure($"Warehouse with ID {updateGoodsReceipt.WarehouseId} not found.");
 
-        var lineParams = new List<(int PurchaseOrderId, int ProductId, decimal ReceivedQty, decimal UnitCost)>();
+        var lineParams = new List<(int ProductId, decimal orderedQty, decimal ReceivedQty, decimal UnitCost)>();
         foreach (var line in updateGoodsReceipt.LinesDto)
         {
             // Check if the PurchaseOrderLine exists and belongs to the specified PurchaseOrder
-            var lineExist = poExist.Lines.FirstOrDefault(po => po.PurchaseOrderId == line.PurchaseOrderId && po.ProductId == line.ProductId);
-            if (lineExist == null)
-                return Result<GoodsReceiptDto>.Failure($"PurchaseOrderLine with ProductID {line.ProductId} not found in PurchaseOrder {updateGoodsReceipt.PurchaseOrderId}.");
-
-            // Check if the Product exists
-            var productExist = await _unitOfWork.ProductRepository.ExistsAsync(p => p.Id == line.ProductId, cancellationToken);
-            if (!productExist)
-                return Result<GoodsReceiptDto>.Failure($"Product with ID {line.ProductId} not found.");
+            var poLineExist = poExist.Lines.FirstOrDefault(po => po.ProductId == line.ProductId);
+            if (poLineExist == null)
+                return Result<GoodsReceiptDto>.Failure($"PurchaseOrderLine with ProductID {line.ProductId} not found in PurchaseOrder {poExist.Id}.");
 
             if (line.ReceivedQty <= 0)
                 return Result<GoodsReceiptDto>.Failure($"Received quantity must be greater than zero for Product ID {line.ProductId}.");
 
-            if (line.ReceivedQty > lineExist.OrderedQty)
-                return Result<GoodsReceiptDto>.Failure($"Received quantity for Product ID {line.ProductId} cannot exceed the ordered quantity.");
-
-            lineParams.Add((line.PurchaseOrderId, line.ProductId, line.ReceivedQty, lineExist.UnitPrice));
+            lineParams.Add((line.ProductId, poLineExist.OrderedQty, line.ReceivedQty, poLineExist.UnitPrice));
         }
 
         exist.Update(
-            updateGoodsReceipt.PurchaseOrderId,
             updateGoodsReceipt.WarehouseId,
             DateTime.Now,
             lineParams

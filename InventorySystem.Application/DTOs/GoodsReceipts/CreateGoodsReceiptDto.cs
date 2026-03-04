@@ -12,6 +12,5 @@
         public int PurchaseOrderId { get; set; }
         public int ProductId { get; set; }
         public decimal ReceivedQty { get; set; }
-        public decimal UnitCost { get; set; }
     }
 }

@@ -71,7 +71,8 @@ public class PurchaseOrderService : IPurchaseOrderService
             SupplierId = createPurchaseOrder.SupplierId,
             OrderDate = DateTime.UtcNow,
             Status = PurchaseOrderStatus.Draft,
-            Lines = lines
+            Lines = lines,
+            TotalAmount = lines.Sum(l => l.LineTotal)
         };
 
         await _unitOfWork.PurchaseOrderRepository.AddAsync(po, cancellationToken);

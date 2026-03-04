@@ -4,13 +4,13 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace InventorySystem.Infrastructure.Data.Configurations;
 
-public class GoodsReceiptLineConfiguration : BaseEntityConfiguration<GoodsReceiptLine>
+public class GoodsReceiptLineConfiguration : IEntityTypeConfiguration<GoodsReceiptLine>
 {
-    public override void Configure(EntityTypeBuilder<GoodsReceiptLine> builder)
+    public void Configure(EntityTypeBuilder<GoodsReceiptLine> builder)
     {
-        base.Configure(builder);
-
         builder.ToTable("GoodsReceiptLines");
+
+        builder.HasKey(x => new { x.GoodsReceiptId, x.ProductId });
 
         builder.Property(x => x.ReceivedQty)
             .HasPrecision(18, 4);
