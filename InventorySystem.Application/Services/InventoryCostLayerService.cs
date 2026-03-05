@@ -1,3 +1,4 @@
+using InventorySystem.Application.DTOs.Inventory;
 using InventorySystem.Application.Interfaces;
 using InventorySystem.Application.Interfaces.Services;
 using InventorySystem.Domain.Common;
@@ -14,21 +15,40 @@ public class InventoryCostLayerService : IInventoryCostLayerService
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<Result<IEnumerable<InventoryCostLayer>>> GetAllAsync(CancellationToken cancellationToken = default)
+    public async Task<Result<IEnumerable<InventoryCostLayerDto>>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         var entities = await _unitOfWork.InventoryCostLayerRepository.GetAllAsync(cancellationToken);
-        return Result<IEnumerable<InventoryCostLayer>>.Success(entities);
+        var dtos = entities.Select(MapToDto).ToList();
+        return Result<IEnumerable<InventoryCostLayerDto>>.Success(dtos);
     }
 
-    public async Task<Result<InventoryCostLayer>> GetByIdAsync(int id, CancellationToken cancellationToken = default)
+    public async Task<Result<InventoryCostLayerDto>> GetByIdAsync(int id, CancellationToken cancellationToken = default)
     {
         var entity = await _unitOfWork.InventoryCostLayerRepository.GetByIdAsync(id, cancellationToken);
         if (entity == null)
         {
-            return Result<InventoryCostLayer>.Failure($"InventoryCostLayer with ID {id} not found.");
+            return Result<InventoryCostLayerDto>.Failure($"InventoryCostLayer with ID {id} not found.");
         }
-
-        return Result<InventoryCostLayer>.Success(entity);
+        var dto = MapToDto(entity);
+        return Result<InventoryCostLayerDto>.Success(dto);
     }
-}
 
+    #region Helpers
+
+    private InventoryCostLayerDto MapToDto(InventoryCostLayer entity)
+    {
+        return new InventoryCostLayerDto
+        {
+            GoodsReceiptId = entity.GoodsReceiptId,
+            ProductId = entity.ProductId,
+            WarehouseId = entity.WarehouseId,
+            OriginalQty = entity.OriginalQty,
+            RemainingQty = entity.RemainingQty,
+            UnitCost = entity.UnitCost,
+            ReceiptDate = entity.ReceiptDate,
+            IsClosed = entity.IsClosed,
+        };
+    }
+
+    #endregion
+}

@@ -97,5 +97,16 @@ public class GoodsReceiptController : ControllerBase
         var result = await _goodsReceiptService.ExistAsync(id, cancellationToken);
         return Ok(result.Data);
     }
+
+    [HttpPost("{id}/post")]
+    public async Task<ActionResult> Post(int id, CancellationToken cancellationToken = default)
+    {
+        var result = await _goodsReceiptService.PostAsync(id, cancellationToken);
+        if (!result.IsSuccess)
+        {
+            return BadRequest(result.ErrorMessage);
+        }
+        return NoContent();
+    }
 }
 

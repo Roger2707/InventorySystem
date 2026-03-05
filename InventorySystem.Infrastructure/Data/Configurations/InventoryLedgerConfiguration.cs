@@ -18,6 +18,9 @@ public class InventoryLedgerConfiguration : BaseEntityConfiguration<InventoryLed
         builder.Property(x => x.QuantityOut)
             .HasPrecision(18, 4);
 
+        builder.Property(x => x.UnitCost)
+            .HasPrecision(18, 4);
+
         builder.Property(x => x.TotalCost)
             .HasPrecision(18, 4);
     }

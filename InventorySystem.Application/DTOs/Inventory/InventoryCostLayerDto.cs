@@ -1,6 +1,6 @@
-﻿namespace InventorySystem.Domain.Entities.Inventory
+﻿namespace InventorySystem.Application.DTOs.Inventory
 {
-    public class InventoryCostLayer : BaseEntity
+    public class InventoryCostLayerDto
     {
         public int GoodsReceiptId { get; set; }
         public int ProductId { get; set; }
@@ -13,7 +13,6 @@
         public decimal UnitCost { get; set; }
 
         public DateTime ReceiptDate { get; set; }
-
-        public bool IsClosed => RemainingQty <= 0;
+        public bool IsClosed { get; set; }
     }
 }

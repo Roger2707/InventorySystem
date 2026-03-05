@@ -61,6 +61,14 @@ namespace InventorySystem.Domain.Entities.GoodsReceipt
 
             TotalAmount = Lines.Sum(l => l.LineTotal);
         }
+    
+        public void Post()
+        {
+            if(Status != ReceiptStatus.Draft)
+                throw new Exception("Only Draft can post");
+
+            Status = ReceiptStatus.Posted;
+        }
     }
 }
 

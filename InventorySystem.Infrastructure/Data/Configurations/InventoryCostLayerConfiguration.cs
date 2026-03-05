@@ -12,6 +12,9 @@ public class InventoryCostLayerConfiguration : BaseEntityConfiguration<Inventory
 
         builder.ToTable("InventoryCostLayers");
 
+        builder.Property(x => x.OriginalQty)
+            .HasPrecision(18, 4);
+
         builder.Property(x => x.RemainingQty)
             .HasPrecision(18, 4);
 

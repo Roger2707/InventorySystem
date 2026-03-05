@@ -3,6 +3,8 @@ using InventorySystem.Application.Interfaces;
 using InventorySystem.Application.Interfaces.Services;
 using InventorySystem.Domain.Common;
 using InventorySystem.Domain.Entities.GoodsReceipt;
+using InventorySystem.Domain.Entities.Inventory;
+using InventorySystem.Domain.Entities.PurchaseOrder;
 using InventorySystem.Domain.Enums;
 
 namespace InventorySystem.Application.Services;
@@ -147,9 +149,83 @@ public class GoodsReceiptService : IGoodsReceiptService
 
     #region Actions
 
-    public Task<Result> PostAsync(int id, CancellationToken cancellationToken = default)
+    public async Task<Result> PostAsync(int id, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        try
+        {
+            await _unitOfWork.BeginTransactionAsync(cancellationToken);
+
+            var goodsReceiptExist = await _unitOfWork.GoodsReceiptRepository.GetWithLinesAsync(id, cancellationToken);
+            if (goodsReceiptExist == null)
+                return Result.Failure($"GoodsReceipt with Id: {id} is not existed");
+
+            var purchaseOrder = await _unitOfWork.PurchaseOrderRepository.GetWithLinesAsync(goodsReceiptExist.PurchaseOrderId);
+            if (purchaseOrder == null)
+                return Result.Failure($"PurchaseOrder with Id: {goodsReceiptExist.PurchaseOrderId} is not existed");
+
+            if (purchaseOrder.Status != PurchaseOrderStatus.Approved)
+                return Result.Failure($"PurchaseOrder is not Approved !");
+            goodsReceiptExist.Post();
+
+
+            foreach (var line in goodsReceiptExist.Lines)
+            {
+                var purchaseLine = purchaseOrder.Lines.FirstOrDefault(l => l.ProductId == line.ProductId);
+
+                if (purchaseLine == null)
+                    throw new Exception("PurchaseOrderLine not found !");
+
+                if (purchaseLine.ReceivedQty == purchaseLine.OrderedQty)
+                    throw new Exception("This Purchase has complete");
+
+                decimal remaining = purchaseLine.OrderedQty - purchaseLine.ReceivedQty;
+                if (remaining < line.ReceivedQty)
+                    throw new Exception("Exceed !");
+
+                // update quantity PurchaseOrderLine
+                purchaseLine.ReceivedQty -= line.ReceivedQty;
+
+                var costLayer = new InventoryCostLayer
+                {
+                    GoodsReceiptId = goodsReceiptExist.Id,
+                    ProductId = line.ProductId,
+                    WarehouseId = goodsReceiptExist.WarehouseId,
+                    OriginalQty = line.ReceivedQty,
+                    RemainingQty = line.ReceivedQty,
+                    UnitCost = line.UnitCost,
+                    ReceiptDate = goodsReceiptExist.ReceiptDate,
+                };
+
+                await _unitOfWork.InventoryCostLayerRepository.AddAsync(costLayer);
+
+                var ledger = new InventoryLedger
+                {
+                    ProductId = line.ProductId,
+                    WarehouseId = goodsReceiptExist.WarehouseId,
+                    TransactionType = InventoryTransactionType.Receipt,
+                    ReferenceId = goodsReceiptExist.Id,
+                    ReferenceType = "GoodsReceipt",
+                    QuantityIn = line.ReceivedQty,
+                    QuantityOut = 0,
+                    UnitCost = line.UnitCost,
+                    TotalCost = line.ReceivedQty * line.UnitCost,
+                    TransactionDate = goodsReceiptExist.ReceiptDate
+                };
+
+                await _unitOfWork.InventoryLedgerRepository.AddAsync(ledger);
+            }
+
+            await _unitOfWork.SaveChangesAsync();
+
+            await _unitOfWork.CommitTransactionAsync(cancellationToken);
+
+            return Result.Success();
+        }
+        catch (Exception ex)
+        {
+            await _unitOfWork.RollbackTransactionAsync(cancellationToken);
+            return Result.Failure(ex.Message);
+        }       
     }
 
     public Task<Result> CancelAsync(int id, CancellationToken cancellationToken = default)
@@ -157,9 +233,10 @@ public class GoodsReceiptService : IGoodsReceiptService
         throw new NotImplementedException();
     }
 
-    public Task<Result<bool>> ExistAsync(int id, CancellationToken cancellationToken = default)
+    public async Task<Result<bool>> ExistAsync(int id, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var isExist = await _unitOfWork.GoodsReceiptRepository.ExistsAsync(g => g.Id == id);
+        return Result<bool>.Success(isExist);
     }
 
     #endregion

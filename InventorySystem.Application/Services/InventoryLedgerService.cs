@@ -1,3 +1,4 @@
+using InventorySystem.Application.DTOs.Inventory;
 using InventorySystem.Application.Interfaces;
 using InventorySystem.Application.Interfaces.Services;
 using InventorySystem.Domain.Common;
@@ -14,21 +15,43 @@ public class InventoryLedgerService : IInventoryLedgerService
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<Result<IEnumerable<InventoryLedger>>> GetAllAsync(CancellationToken cancellationToken = default)
+    public async Task<Result<IEnumerable<InventoryLedgerDto>>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         var entities = await _unitOfWork.InventoryLedgerRepository.GetAllAsync(cancellationToken);
-        return Result<IEnumerable<InventoryLedger>>.Success(entities);
+        var dtos = entities.Select(MapToDto).ToList();
+        return Result<IEnumerable<InventoryLedgerDto>>.Success(dtos);
     }
 
-    public async Task<Result<InventoryLedger>> GetByIdAsync(int id, CancellationToken cancellationToken = default)
+    public async Task<Result<InventoryLedgerDto>> GetByIdAsync(int id, CancellationToken cancellationToken = default)
     {
         var entity = await _unitOfWork.InventoryLedgerRepository.GetByIdAsync(id, cancellationToken);
         if (entity == null)
         {
-            return Result<InventoryLedger>.Failure($"InventoryLedger with ID {id} not found.");
+            return Result<InventoryLedgerDto>.Failure($"InventoryLedger with ID {id} not found.");
         }
 
-        return Result<InventoryLedger>.Success(entity);
+        var dto = MapToDto(entity);
+        return Result<InventoryLedgerDto>.Success(dto);
     }
-}
 
+    #region Helper
+
+    private InventoryLedgerDto MapToDto(InventoryLedger entity)
+    {
+        return new InventoryLedgerDto
+        {
+            ProductId = entity.ProductId,
+            WarehouseId = entity.WarehouseId,
+            TransactionType = entity.TransactionType,
+            ReferenceId = entity.ReferenceId,
+            ReferenceType = entity.ReferenceType,
+            QuantityIn = entity.QuantityIn,
+            QuantityOut = entity.QuantityOut,
+            UnitCost = entity.UnitCost,
+            TotalCost = entity.TotalCost,
+            TransactionDate = entity.TransactionDate,
+        };
+    }
+
+    #endregion
+}

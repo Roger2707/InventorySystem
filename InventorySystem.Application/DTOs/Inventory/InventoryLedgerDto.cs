@@ -1,8 +1,8 @@
 ﻿using InventorySystem.Domain.Enums;
 
-namespace InventorySystem.Domain.Entities.Inventory
+namespace InventorySystem.Application.DTOs.Inventory
 {
-    public class InventoryLedger : BaseEntity
+    public class InventoryLedgerDto
     {
         public int ProductId { get; set; }
 
@@ -20,7 +20,7 @@ namespace InventorySystem.Domain.Entities.Inventory
 
         public decimal UnitCost { get; set; }
 
-        public decimal TotalCost { get; set; } 
+        public decimal TotalCost { get; set; }
 
         public DateTime TransactionDate { get; set; }
     }
