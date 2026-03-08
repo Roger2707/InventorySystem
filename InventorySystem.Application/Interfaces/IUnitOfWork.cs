@@ -18,6 +18,9 @@ public interface IUnitOfWork : IDisposable
     IInventoryLedgerRepository InventoryLedgerRepository { get; }
     IInventoryCostLayerRepository InventoryCostLayerRepository { get; }
     ISupplierProductPriceRepository SupplierProductPriceRepository { get; }
+    ISalesOrderRepository SalesOrderRepository { get; }
+    IDeliveryRepository DeliveryRepository { get; }
+    IInventoryReservationRepository InventoryReservationRepository { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     Task BeginTransactionAsync(CancellationToken cancellationToken = default);

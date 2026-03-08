@@ -4,7 +4,6 @@ using InventorySystem.Application.Interfaces.Services;
 using InventorySystem.Domain.Common;
 using InventorySystem.Domain.Entities.GoodsReceipt;
 using InventorySystem.Domain.Entities.Inventory;
-using InventorySystem.Domain.Entities.PurchaseOrder;
 using InventorySystem.Domain.Enums;
 
 namespace InventorySystem.Application.Services;
@@ -163,11 +162,18 @@ public class GoodsReceiptService : IGoodsReceiptService
             if (purchaseOrder == null)
                 return Result.Failure($"PurchaseOrder with Id: {goodsReceiptExist.PurchaseOrderId} is not existed");
 
-            if (purchaseOrder.Status != PurchaseOrderStatus.Approved)
+            if (purchaseOrder.Status == PurchaseOrderStatus.Draft)
                 return Result.Failure($"PurchaseOrder is not Approved !");
+
+            if (purchaseOrder.Status == PurchaseOrderStatus.Completed)
+                return Result.Failure($"PurchaseOrder is already completed !");
+
+            if (purchaseOrder.Status == PurchaseOrderStatus.Cancelled)
+                return Result.Failure($"PurchaseOrder is Cancelled !");
+
             goodsReceiptExist.Post();
 
-
+            int countLineComplete = 0;
             foreach (var line in goodsReceiptExist.Lines)
             {
                 var purchaseLine = purchaseOrder.Lines.FirstOrDefault(l => l.ProductId == line.ProductId);
@@ -178,12 +184,18 @@ public class GoodsReceiptService : IGoodsReceiptService
                 if (purchaseLine.ReceivedQty == purchaseLine.OrderedQty)
                     throw new Exception("This Purchase has complete");
 
-                decimal remaining = purchaseLine.OrderedQty - purchaseLine.ReceivedQty;
+                decimal pol_OrderedQty = purchaseLine.OrderedQty;
+                decimal pol_ReceivedQty = purchaseLine.ReceivedQty;
+                decimal remaining = pol_OrderedQty - pol_ReceivedQty;
+
                 if (remaining < line.ReceivedQty)
                     throw new Exception("Exceed !");
 
-                // update quantity PurchaseOrderLine
-                purchaseLine.ReceivedQty -= line.ReceivedQty;
+                // Update quantity PurchaseOrderLine
+                purchaseLine.ReceivedQty += line.ReceivedQty;
+
+                if (purchaseLine.ReceivedQty == pol_OrderedQty)
+                    countLineComplete++;
 
                 var costLayer = new InventoryCostLayer
                 {
@@ -215,8 +227,13 @@ public class GoodsReceiptService : IGoodsReceiptService
                 await _unitOfWork.InventoryLedgerRepository.AddAsync(ledger);
             }
 
-            await _unitOfWork.SaveChangesAsync();
+            // Update PurchaseOrder_Status
+            if (countLineComplete == purchaseOrder.Lines.Count)
+                purchaseOrder.Status = PurchaseOrderStatus.Completed;
+            else
+                purchaseOrder.Status = PurchaseOrderStatus.PartiallyReceived;
 
+            await _unitOfWork.SaveChangesAsync();
             await _unitOfWork.CommitTransactionAsync(cancellationToken);
 
             return Result.Success();

@@ -2,7 +2,7 @@
 using InventorySystem.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
-namespace InventorySystem.Infrastructure.Repositories
+namespace InventorySystem.Infrastructure.Repositories.Generators
 {
     public class PurchaseOrderGenerator : IPurchaseOrderGenerator
     {

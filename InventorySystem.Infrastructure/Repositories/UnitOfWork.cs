@@ -26,6 +26,9 @@ public class UnitOfWork : IUnitOfWork
     private IInventoryLedgerRepository? _inventoryLedgerRepository;
     private IInventoryCostLayerRepository? _inventoryCostLayerRepository;
     private ISupplierProductPriceRepository? _supplierProductPriceRepository;
+    private ISalesOrderRepository? _salesOrderRepository;
+    private IDeliveryRepository? _deliveryRepository;
+    private IInventoryReservationRepository? _inventoryReservationRepository;
 
     public UnitOfWork(ApplicationDbContext context)
     {
@@ -226,6 +229,42 @@ public class UnitOfWork : IUnitOfWork
                 _supplierProductPriceRepository = new SupplierProductPriceRepository(_context);
             }
             return _supplierProductPriceRepository;
+        }
+    }
+
+    public ISalesOrderRepository SalesOrderRepository
+    {
+        get
+        {
+            if (_salesOrderRepository == null)
+            {
+                _salesOrderRepository = new SalesOrderRepository(_context);
+            }
+            return _salesOrderRepository;
+        }
+    }
+
+    public IDeliveryRepository DeliveryRepository
+    {
+        get
+        {
+            if (_deliveryRepository == null)
+            {
+                _deliveryRepository = new DeliveryRepository(_context);
+            }
+            return _deliveryRepository;
+        }
+    }
+
+    public IInventoryReservationRepository InventoryReservationRepository
+    {
+        get
+        {
+            if (_inventoryReservationRepository == null)
+            {
+                _inventoryReservationRepository = new InventoryReservationRepository(_context);
+            }
+            return _inventoryReservationRepository;
         }
     }
 

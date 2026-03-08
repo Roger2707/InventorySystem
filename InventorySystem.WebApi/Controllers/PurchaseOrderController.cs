@@ -1,5 +1,6 @@
 using InventorySystem.Application.DTOs.PurchaseOrders;
 using InventorySystem.Application.Interfaces.Services;
+using InventorySystem.Application.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace InventorySystem.WebApi.Controllers;
@@ -96,6 +97,17 @@ public class PurchaseOrderController : ControllerBase
     {
         var result = await _purchaseOrderService.ExistAsync(id, cancellationToken);
         return Ok(result.Data);
+    }
+
+    [HttpPost("{id}/post")]
+    public async Task<ActionResult> Post(int id, CancellationToken cancellationToken = default)
+    {
+        var result = await _purchaseOrderService.ApprovePurchaseOrderAsync(id, cancellationToken);
+        if (!result.IsSuccess)
+        {
+            return BadRequest(result.ErrorMessage);
+        }
+        return NoContent();
     }
 }
 

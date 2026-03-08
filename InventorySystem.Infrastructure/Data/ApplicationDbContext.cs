@@ -7,6 +7,8 @@ using InventorySystem.Domain.Entities.GoodsReceipt;
 using InventorySystem.Domain.Entities.Inventory;
 using InventorySystem.Domain.Entities.PurchaseOrder;
 using InventorySystem.Domain.Entities.StockTransfer;
+using InventorySystem.Domain.Entities.SalesOrder;
+using InventorySystem.Domain.Delivery;
 
 namespace InventorySystem.Infrastructure.Data;
 
@@ -48,9 +50,16 @@ public class ApplicationDbContext : DbContext
     // Inventory entities
     public DbSet<InventoryLedger> InventoryLedgers { get; set; }
     public DbSet<InventoryCostLayer> InventoryCostLayers { get; set; }
+    public DbSet<InventoryReservation> InventoryReservationLayers { get; set; }
 
     // Supplier pricing
     public DbSet<SupplierProductPrice> SupplierProductPrices { get; set; }
+
+    // Sales Order
+    public DbSet<SalesOrder> SalesOrders { get; set; }
+
+    // Delivery
+    public DbSet<Delivery> Deliveries { get; set; }
 
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
     {
@@ -71,12 +80,20 @@ public class ApplicationDbContext : DbContext
                     .IncrementsBy(1);
 
         modelBuilder.HasSequence<int>("PurchaseOrderSequence")
-            .StartsAt(10)
-            .IncrementsBy(1);
+                    .StartsAt(10)
+                    .IncrementsBy(1);
 
         modelBuilder.HasSequence<int>("GoodsReceiptSequence")
-            .StartsAt(10)
-            .IncrementsBy(1);
+                    .StartsAt(10)
+                    .IncrementsBy(1);
+
+        modelBuilder.HasSequence<int>("SalesOrderSequence")
+                    .StartsAt(10)
+                    .IncrementsBy(1);
+
+        modelBuilder.HasSequence<int>("DeliverySequence")
+                    .StartsAt(10)
+                    .IncrementsBy(1);
 
         // Apply all entity configurations
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);

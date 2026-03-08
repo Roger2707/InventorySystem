@@ -1,15 +1,14 @@
-﻿using InventorySystem.Application.Interfaces;
+﻿using InventorySystem.Application.Interfaces.Services;
 using InventorySystem.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
-using System;
 
-namespace InventorySystem.Infrastructure.Repositories
+namespace InventorySystem.Infrastructure.Repositories.Generators
 {
-    public class SKUGenerator : ISkuGenerator
+    public class GoodsReceiptGenerator : IGoodsReceiptGenerator
     {
         private readonly ApplicationDbContext _context;
 
-        public SKUGenerator(ApplicationDbContext context)
+        public GoodsReceiptGenerator(ApplicationDbContext context)
         {
             _context = context;
         }
@@ -22,13 +21,12 @@ namespace InventorySystem.Infrastructure.Repositories
                 await connection.OpenAsync(cancellationToken);
 
             await using var command = connection.CreateCommand();
-            command.CommandText = "SELECT NEXT VALUE FOR ProductSkuSequence";
+            command.CommandText = "SELECT NEXT VALUE FOR GoodsReceiptSequence";
 
             var result = await command.ExecuteScalarAsync(cancellationToken);
-
             var nextValue = Convert.ToInt32(result);
 
-            return $"PRD-{nextValue:D6}";
+            return $"RO-{DateTime.UtcNow:yyyyMMdd}-{nextValue:D3}";
         }
     }
 }

@@ -5,6 +5,7 @@ using InventorySystem.Application.Services;
 using InventorySystem.Infrastructure.Data;
 using InventorySystem.Infrastructure.Queries;
 using InventorySystem.Infrastructure.Repositories;
+using InventorySystem.Infrastructure.Repositories.Generators;
 using InventorySystem.Infrastructure.Seed;
 using InventorySystem.Infrastructure.Services;
 using InventorySystem.WebApi.Middleware;

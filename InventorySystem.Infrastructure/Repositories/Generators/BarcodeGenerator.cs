@@ -2,14 +2,14 @@
 using InventorySystem.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
-namespace InventorySystem.Infrastructure.Repositories
+namespace InventorySystem.Infrastructure.Repositories.Generators
 {
     public class BarcodeGenerator : IBarcodeGenerator
     {
         private readonly ApplicationDbContext _context;
 
         private const string CountryPrefix = "893"; // VietNam's GS1 prefix
-        private const string CompanyCode = "1234";  
+        private const string CompanyCode = "1234";
         public BarcodeGenerator(ApplicationDbContext context)
         {
             _context = context;
@@ -55,7 +55,7 @@ namespace InventorySystem.Infrastructure.Repositories
                     sumEven += digit;
             }
 
-            int total = sumOdd + (sumEven * 3);
+            int total = sumOdd + sumEven * 3;
             int mod = total % 10;
 
             return mod == 0 ? 0 : 10 - mod;
