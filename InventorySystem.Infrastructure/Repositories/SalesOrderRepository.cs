@@ -13,14 +13,21 @@ namespace InventorySystem.Infrastructure.Repositories
 
         public async Task<IEnumerable<SalesOrder>> GetAllWithLinesAsync(CancellationToken cancellationToken = default)
         {
-            var salesOrder = await _context.SalesOrders.Include(s => s.Lines).ToListAsync(cancellationToken);
+            var salesOrder = await _context.SalesOrders
+                .Include(s => s.Customer)
+                .Include(s => s.Lines)
+                .ThenInclude(l => l.Product)
+                .ToListAsync(cancellationToken);
+
             return salesOrder;
         }
 
         public async Task<SalesOrder> GetWithLinesAsync(int id, CancellationToken cancellationToken = default)
         {
             var salesOrder = await _context.SalesOrders
+                                        .Include(s => s.Customer)
                                         .Include(s => s.Lines)
+                                        .ThenInclude(l => l.Product)
                                         .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
             return salesOrder;
         }

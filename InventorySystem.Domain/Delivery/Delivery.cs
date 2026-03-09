@@ -5,12 +5,12 @@ namespace InventorySystem.Domain.Delivery
 {
     public class Delivery : BaseEntity
     {
-        public int SalesOrderId { get; private set; }
+        public int SalesOrderId { get; set; }
 
-        public DeliveryStatus Status { get; private set; }
+        public DeliveryStatus Status { get; set; }
 
-        public DateTime DeliveryDate { get; private set; }
+        public DateTime DeliveryDate { get; set; }
 
-        public List<DeliveryLine> Lines { get; private set; } = new();
+        public List<DeliveryLine> Lines { get; set; } = new();
     }
 }

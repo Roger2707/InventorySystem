@@ -3,7 +3,7 @@
     public class DeliveryLine
     {
         public int DeliveryId { get; set; }
-        public int ProductId { get; private set; }
-        public decimal Quantity { get; private set; }
+        public int ProductId { get; set; }
+        public decimal Quantity { get; set; }
     }
 }
