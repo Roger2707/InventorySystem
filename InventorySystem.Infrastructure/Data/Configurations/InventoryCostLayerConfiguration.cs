@@ -18,6 +18,9 @@ public class InventoryCostLayerConfiguration : BaseEntityConfiguration<Inventory
         builder.Property(x => x.RemainingQty)
             .HasPrecision(18, 4);
 
+        builder.Property(x => x.ReservedQty)
+            .HasPrecision(18, 4);
+
         builder.Property(x => x.UnitCost)
             .HasPrecision(18, 4);
     }

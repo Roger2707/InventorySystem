@@ -1,4 +1,3 @@
-using InventorySystem.Application.DTOs.Inventory;
 using InventorySystem.Application.Interfaces;
 using InventorySystem.Domain.Entities.Inventory;
 using InventorySystem.Infrastructure.Data;
@@ -12,29 +11,21 @@ public class InventoryCostLayerRepository : Repository<InventoryCostLayer>, IInv
     {
     }
 
-    public async Task<List<InventoryCostLayerDto>> GetFIFOProductsById(int productId, CancellationToken cancellationToken = default)
+    public async Task<List<InventoryCostLayer>> GetFIFOProductsById(int productId, CancellationToken cancellationToken = default)
     {
-        var inventory_products = await _context.InventoryCostLayers
-            .Where(i => i.ProductId == productId)
-            .OrderBy(i => i.CreatedAt)
+        var layers = await _context.InventoryCostLayers
+            .Where(i => i.ProductId == productId && i.RemainingQty - i.ReservedQty > 0)
+            .OrderBy(i => i.ReceiptDate)
             .ToListAsync(cancellationToken);
 
-        return inventory_products.Select(MapToDto).ToList();
+        return layers;
     }
 
-    private static InventoryCostLayerDto MapToDto(InventoryCostLayer entity)
+    public async Task<List<InventoryCostLayer>> GetByIdsAsync(IEnumerable<int> layerIds, CancellationToken cancellationToken = default)
     {
-        return new InventoryCostLayerDto
-        {
-            GoodsReceiptId = entity.GoodsReceiptId,
-            ProductId = entity.ProductId,
-            WarehouseId = entity.WarehouseId,
-            OriginalQty = entity.OriginalQty,
-            RemainingQty = entity.RemainingQty,
-            UnitCost = entity.UnitCost,
-            ReceiptDate = entity.ReceiptDate,
-            IsClosed = entity.IsClosed
-        };
+        return await _context.InventoryCostLayers
+            .Where(x => layerIds.Contains(x.Id))
+            .ToListAsync(cancellationToken);
     }
 }
 

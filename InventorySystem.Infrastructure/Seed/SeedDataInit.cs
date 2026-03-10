@@ -1,6 +1,8 @@
 ﻿using InventorySystem.Application.Interfaces;
 using InventorySystem.Domain.Entities;
+using InventorySystem.Domain.Entities.GoodsReceipt;
 using InventorySystem.Domain.Entities.Identity;
+using InventorySystem.Domain.Entities.Inventory;
 using InventorySystem.Domain.Entities.Products;
 using InventorySystem.Domain.Entities.PurchaseOrder;
 using InventorySystem.Domain.Entities.Suppliers;
@@ -68,6 +70,12 @@ namespace InventorySystem.Infrastructure.Seed
 
             if (!await context.PurchaseOrders.AnyAsync())
                 await SeedPurchaseOrdersAsync(context);
+
+            if(await context.PurchaseOrders.AnyAsync())
+                await SeedGoodsReceiptsAsync(context);
+
+            if(await context.GoodsReceipts.AnyAsync())
+                await SeedInventoryAsync(context);
         }
 
         private static async Task SeedUserAsyc(ApplicationDbContext context, IPasswordHasher hasher)
@@ -780,6 +788,136 @@ namespace InventorySystem.Infrastructure.Seed
             }
 
             context.PurchaseOrders.AddRange(purchaseOrders);
+            await context.SaveChangesAsync();
+        }
+
+        private static async Task SeedGoodsReceiptsAsync(ApplicationDbContext context)
+        {
+            if (context.GoodsReceipts.Any()) return;
+
+            var random = new Random();
+
+            var purchaseOrders = context.PurchaseOrders
+                .Include(x => x.Lines)
+                .ToList();
+
+            if (!purchaseOrders.Any()) return;
+
+            var receipts = new List<GoodsReceipt>();
+
+            for (int i = 1; i <= 5; i++)
+            {
+                var po = purchaseOrders[random.Next(purchaseOrders.Count)];
+
+                var receiptDate = po.OrderDate.AddDays(random.Next(2, 10));
+
+                var receipt = new GoodsReceipt
+                {
+                    ReceiptNumber = $"GR-{DateTime.UtcNow:yyyyMMdd}-{i:D3}",
+                    PurchaseOrderId = po.Id,
+                    WarehouseId = random.Next(1, 3),
+                    Status = ReceiptStatus.Posted,
+                    ReceiptDate = receiptDate,
+                    Lines = new List<GoodsReceiptLine>()
+                };
+
+                int lineCount = random.Next(1, 3);
+
+                var poLines = po.Lines
+                    .OrderBy(x => random.Next())
+                    .Take(lineCount)
+                    .ToList();
+
+                decimal totalAmount = 0;
+
+                foreach (var poLine in poLines)
+                {
+                    var receivedQty = random.Next(1, (int)poLine.OrderedQty + 1);
+
+                    // cost dao động nhẹ quanh unit price
+                    var unitCost = poLine.UnitPrice * (decimal)(0.9 + random.NextDouble() * 0.2);
+
+                    var line = new GoodsReceiptLine
+                    {
+                        PurchaseOrderId = po.Id,
+                        ProductId = poLine.ProductId,
+                        ReceivedQty = receivedQty,
+                        UnitCost = Math.Round(unitCost, 2)
+                    };
+
+                    totalAmount += line.LineTotal;
+
+                    receipt.Lines.Add(line);
+                }
+
+                receipt.TotalAmount = totalAmount;
+
+                receipts.Add(receipt);
+            }
+
+            context.GoodsReceipts.AddRange(receipts);
+            await context.SaveChangesAsync();
+        }
+
+        private static async Task SeedInventoryAsync(ApplicationDbContext context)
+        {
+            if (context.InventoryCostLayers.Any()) return;
+
+            var receipts = context.GoodsReceipts
+                .Include(x => x.Lines)
+                .ToList();
+
+            var costLayers = new List<InventoryCostLayer>();
+            var ledgers = new List<InventoryLedger>();
+
+            foreach (var receipt in receipts)
+            {
+                foreach (var line in receipt.Lines)
+                {
+                    // FIFO Layer
+                    var layer = new InventoryCostLayer
+                    {
+                        GoodsReceiptId = receipt.Id,
+                        ProductId = line.ProductId,
+                        WarehouseId = receipt.WarehouseId,
+
+                        OriginalQty = line.ReceivedQty,
+                        RemainingQty = line.ReceivedQty,
+                        ReservedQty = 0,
+
+                        UnitCost = line.UnitCost,
+                        ReceiptDate = receipt.ReceiptDate
+                    };
+
+                    costLayers.Add(layer);
+
+                    // Inventory Ledger (IN)
+                    var ledger = new InventoryLedger
+                    {
+                        ProductId = line.ProductId,
+                        WarehouseId = receipt.WarehouseId,
+
+                        TransactionType = InventoryTransactionType.Receipt,
+
+                        ReferenceId = receipt.Id,
+                        ReferenceType = "GoodsReceipt",
+
+                        QuantityIn = line.ReceivedQty,
+                        QuantityOut = 0,
+
+                        UnitCost = line.UnitCost,
+                        TotalCost = line.ReceivedQty * line.UnitCost,
+
+                        TransactionDate = receipt.ReceiptDate
+                    };
+
+                    ledgers.Add(ledger);
+                }
+            }
+
+            context.InventoryCostLayers.AddRange(costLayers);
+            context.InventoryLedgers.AddRange(ledgers);
+
             await context.SaveChangesAsync();
         }
     }

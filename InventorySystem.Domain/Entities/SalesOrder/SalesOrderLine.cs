@@ -7,6 +7,7 @@ namespace InventorySystem.Domain.Entities.SalesOrder
         public int SalesOrderId { get; set; }
         public int ProductId { get; set; }
         public Product Product { get; set; }
+        public int RowNumber { get; set; }
         public decimal OrderedQty { get; set; }
         public decimal DeliveredQty { get; set; } = 0;
         public decimal UnitPrice { get; set; }

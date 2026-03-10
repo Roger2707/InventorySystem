@@ -9,6 +9,7 @@
         public decimal OriginalQty { get; set; }
 
         public decimal RemainingQty { get; set; }
+        public decimal ReservedQty { get; set; }
 
         public decimal UnitCost { get; set; }
 

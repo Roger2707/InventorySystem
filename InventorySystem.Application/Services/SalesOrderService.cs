@@ -1,7 +1,10 @@
-﻿using InventorySystem.Application.DTOs.SalesOrder;
+﻿using InventorySystem.Application.DTOs.PurchaseOrders;
+using InventorySystem.Application.DTOs.SalesOrder;
 using InventorySystem.Application.Interfaces;
 using InventorySystem.Domain.Common;
+using InventorySystem.Domain.Entities.Inventory;
 using InventorySystem.Domain.Entities.SalesOrder;
+using System.Linq;
 
 namespace InventorySystem.Application.Services
 {
@@ -41,60 +44,224 @@ namespace InventorySystem.Application.Services
 
         public async Task<Result<SalesOrderDto>> CreateAsync(CreateSalesOrderDto createSalesOrderDto, CancellationToken cancellationToken = default)
         {
-            #region Validations
-
-            var isCustomerExisted = await _unitOfWork.CustomerRepository.ExistsAsync(c => c.Id == createSalesOrderDto.CustomerId, cancellationToken);
-            if (!isCustomerExisted)
-                return Result<SalesOrderDto>.Failure($"Customer ID {createSalesOrderDto.CustomerId} is not Existed !");
-
-            var salesOrderLine = new List<SalesOrderLine>();
-            foreach(var createLine in createSalesOrderDto.CreateLinesDto)
+            try
             {
-                var inventory_products = await _unitOfWork.InventoryCostLayerRepository.GetFIFOProductsById(createLine.ProductId);
-                if (inventory_products == null || inventory_products.Count == 0)
-                    return Result<SalesOrderDto>.Failure($"Product id: {createLine.ProductId} is not exist in Inventory.");
+                await _unitOfWork.BeginTransactionAsync(cancellationToken);
 
-                // check if over quantity
-                
-                foreach(var inventory_product in inventory_products)
+                #region Validations
+
+                var isCustomerExisted = await _unitOfWork.CustomerRepository
+                    .ExistsAsync(c => c.Id == createSalesOrderDto.CustomerId, cancellationToken);
+
+                if (!isCustomerExisted)
+                    return Result<SalesOrderDto>.Failure($"Customer ID {createSalesOrderDto.CustomerId} is not Existed !");
+
+                #endregion
+
+                IEnumerable<(int ProductId, decimal Qty)> p =
+                    createSalesOrderDto.CreateLinesDto
+                           .Select(c => (c.ProductId, c.OrderedQty))
+                           .ToList();
+
+                var (salesOrderLines, reservations) = await BuildFifoReservation(p, cancellationToken);
+
+                #region SalesOrder
+
+                string orderNumber = await _salesOrderGenerator.GenerateAsync(cancellationToken);
+
+                var salesOrder = new SalesOrder
                 {
-                    if(inventory_product.RemainingQty < createLine.OrderedQty)
-                    {
+                    OrderNumber = orderNumber,
+                    CustomerId = createSalesOrderDto.CustomerId,
+                    OrderDate = DateTime.Now,
+                    Lines = salesOrderLines
+                };
 
+                await _unitOfWork.SalesOrderRepository.AddAsync(salesOrder);
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+                #endregion
+
+                #region Reservation Stock
+
+                foreach (var reservation in reservations)
+                {
+                    reservation.SourceId = salesOrder.Id;
+                    await _unitOfWork.InventoryReservationRepository.AddAsync(reservation);
+                }
+
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+                #endregion
+
+                await _unitOfWork.CommitTransactionAsync(cancellationToken);
+
+                var dto = MapToDto(salesOrder);
+                return Result<SalesOrderDto>.Success(dto);
+            }
+            catch (Exception ex)
+            {
+                await _unitOfWork.RollbackTransactionAsync(cancellationToken);
+                return Result<SalesOrderDto>.Failure(ex.Message);
+            }
+        }    
+
+        public async Task<Result<SalesOrderDto>> UpdateAsync(int id, UpdateSalesOrderDto updateSalesOrderDto, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                await _unitOfWork.BeginTransactionAsync(cancellationToken);
+
+                #region Validations
+
+                var salesOrderExist = await _unitOfWork.SalesOrderRepository.GetWithLinesAsync(id, cancellationToken);
+                if (salesOrderExist == null)
+                    return Result<SalesOrderDto>.Failure($"SalesOrder with ID: {id} is not existed !");
+
+                var isCustomerExisted = await _unitOfWork.CustomerRepository.ExistsAsync(c => c.Id == updateSalesOrderDto.CustomerId, cancellationToken);
+                if (!isCustomerExisted)
+                    return Result<SalesOrderDto>.Failure($"Customer ID {updateSalesOrderDto.CustomerId} is not Existed !");
+
+                bool isAllow = salesOrderExist.AllowUpdate();
+                if (!isAllow)
+                    return Result<SalesOrderDto>.Failure($"Only Draft Status can be Updated !");
+
+                #endregion
+
+                #region Delete Old Reservation records
+
+                var reserveExist = await _unitOfWork.InventoryReservationRepository.GetReservationBySalesOrder(id, cancellationToken);
+                var layerIds = reserveExist
+                                .Select(x => x.LayerId)
+                                .Distinct();
+
+                var layers = await _unitOfWork.InventoryCostLayerRepository.GetByIdsAsync(layerIds, cancellationToken);
+                var layerDict = layers.ToDictionary(x => x.Id);
+
+                foreach (var reservation in reserveExist)
+                {
+                    await _unitOfWork.InventoryReservationRepository.DeleteAsync(reservation);
+
+                    if (layerDict.TryGetValue(reservation.LayerId, out var layer))
+                    {
+                        layer.ReservedQty = Math.Max(0, layer.ReservedQty - reservation.ReservedQty);
                     }
                 }
 
-                salesOrderLine.Add(new SalesOrderLine
+                #endregion
+
+                #region FIFO logic
+
+                IEnumerable<(int ProductId, decimal Qty)> p =
+                    updateSalesOrderDto.UpdateLinesDto
+                           .Select(c => (c.ProductId, c.OrderedQty))
+                           .ToList();
+
+                var (salesOrderLines, reservations) = await BuildFifoReservation(p, cancellationToken);
+
+                #endregion
+
+                #region SalesOrder
+
+                salesOrderExist.CustomerId = updateSalesOrderDto.CustomerId;
+                salesOrderExist.Lines.Clear();
+                foreach (var line in salesOrderLines)
                 {
-                    ProductId = createLine.ProductId,
-                    //UnitPrice = inventory_products.UnitCost,
-                    OrderedQty = createLine.OrderedQty
-                });
+                    salesOrderExist.Lines.Add(line);
+                }
+
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+                #endregion
+
+                #region Reservation Stock
+
+                foreach (var reservation in reservations)
+                {
+                    reservation.SourceId = salesOrderExist.Id;
+                    await _unitOfWork.InventoryReservationRepository.AddAsync(reservation);
+                }
+
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+                #endregion
+
+                await _unitOfWork.CommitTransactionAsync(cancellationToken);
+
+                var dto = MapToDto(salesOrderExist);
+                return Result<SalesOrderDto>.Success(dto);
+            }
+            catch (Exception ex)
+            {
+                await _unitOfWork.RollbackTransactionAsync(cancellationToken);
+                return Result<SalesOrderDto>.Failure(ex.Message);
+            }
+        }
+
+        private async Task<(List<SalesOrderLine>, List<InventoryReservation>)> BuildFifoReservation(
+                            IEnumerable<(int ProductId, decimal Qty)> lines,
+                            CancellationToken cancellationToken)
+        {
+            var salesOrderLines = new List<SalesOrderLine>();
+            var reservations = new List<InventoryReservation>();
+            int rowNumber = 1;
+
+            foreach (var line in lines)
+            {
+                var layers = await _unitOfWork.InventoryCostLayerRepository
+                    .GetFIFOProductsById(line.ProductId);
+
+                if (layers == null || layers.Count == 0)
+                    throw new Exception($"Product {line.ProductId} not in inventory");
+
+                decimal remainingQty = line.Qty;
+
+                foreach (var layer in layers)
+                {
+                    if (remainingQty <= 0)
+                        break;
+
+                    var takeQty = Math.Min(layer.RemainingQty, remainingQty);
+
+                    remainingQty -= takeQty;
+
+                    salesOrderLines.Add(new SalesOrderLine
+                    {
+                        ProductId = line.ProductId,
+                        RowNumber = rowNumber,
+                        UnitPrice = layer.UnitCost,
+                        OrderedQty = takeQty
+                    });
+
+                    reservations.Add(new InventoryReservation
+                    {
+                        ProductId = line.ProductId,
+                        LayerId = layer.Id,
+                        ReservedQty = takeQty,
+                        UnitPrice = layer.UnitCost
+                    });
+
+                    layer.ReservedQty += takeQty;
+                    rowNumber++;
+                }
+
+
+                if (remainingQty > 0)
+                    throw new Exception($"Not enough stock for product {line.ProductId}");
             }
 
-            #endregion
-
-            string orderNumber = await _salesOrderGenerator.GenerateAsync(cancellationToken);
-            var salesOrder = new SalesOrder
-            {
-                OrderNumber = orderNumber,
-                CustomerId = createSalesOrderDto.CustomerId,
-                OrderDate = DateTime.Now,
-                Lines = salesOrderLine
-            };
-
-            throw new NotImplementedException();
+            return (salesOrderLines, reservations);
         }
 
-        
+        public async Task<Result> DeleteAsync(int id, CancellationToken cancellationToken = default)
+        {
+            var salesOrderExist = await _unitOfWork.SalesOrderRepository.GetWithLinesAsync(id, cancellationToken);
+            if (salesOrderExist == null)
+                return Result.Failure($"SalesOrder with ID: {id} is not existed !");
 
-        public Task<Result<SalesOrderDto>> UpdateAsync(int id, UpdateSalesOrderDto updateSalesOrderDto, CancellationToken cancellationToken = default)
-        {
-            throw new NotImplementedException();
-        }
-        public Task<Result> DeleteAsync(int id, CancellationToken cancellationToken = default)
-        {
-            throw new NotImplementedException();
+            salesOrderExist.IsDeleted = true;
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            return Result.Success();
         }
 
         public async Task<Result<bool>> ExistAsync(int id, CancellationToken cancellationToken = default)
@@ -105,14 +272,27 @@ namespace InventorySystem.Application.Services
 
         #endregion
 
-        public Task<Result> CancelAsync(int id, CancellationToken cancellationToken = default)
+        public async Task<Result> CancelAsync(int id, CancellationToken cancellationToken = default)
         {
-            throw new NotImplementedException();
+            var salesOrderExist = await _unitOfWork.SalesOrderRepository.GetWithLinesAsync(id, cancellationToken);
+            if (salesOrderExist == null)
+                return Result.Failure($"SalesOrder with ID: {id} is not existed !");
+
+            salesOrderExist.Status = Domain.Enums.SalesOrderStatus.Cancelled;
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            return Result.Success();
         }
 
-        public Task<Result> ConfirmAsync(int id, CancellationToken cancellationToken = default)
+        public async Task<Result> ConfirmAsync(int id, CancellationToken cancellationToken = default)
         {
-            throw new NotImplementedException();
+            SalesOrder so = await _unitOfWork.SalesOrderRepository.GetByIdAsync(id, cancellationToken);
+            if (so == null)
+                return Result.Failure($"SalesOrder with ID {id} not found.");
+
+            so.Confirm();
+
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            return Result.Success();
         }
 
         #region Helpers
@@ -125,7 +305,7 @@ namespace InventorySystem.Application.Services
                 CustomerId = entity.CustomerId,
                 OrderDate = entity.OrderDate,
                 Status = entity.Status,
-                CustomerName = entity.Customer.CustomerName,
+                CustomerName = entity.Customer?.CustomerName,
                 TotalAmount = entity.TotalAmount,
                 LinesDto = entity.Lines.Select(l => new SalesOrderLineDto
                 {

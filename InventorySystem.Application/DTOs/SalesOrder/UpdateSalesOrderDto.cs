@@ -3,7 +3,7 @@
     public class UpdateSalesOrderDto
     {
         public int CustomerId { get; set; }
-        public List<UpdateSalesOrderLineDto> UdateLinesDto { get; set; } = new();
+        public List<UpdateSalesOrderLineDto> UpdateLinesDto { get; set; } = new();
     }
 
     public class UpdateSalesOrderLineDto

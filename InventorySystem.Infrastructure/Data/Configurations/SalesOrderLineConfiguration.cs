@@ -10,7 +10,7 @@ public class SalesOrderLineConfiguration : IEntityTypeConfiguration<SalesOrderLi
     {
         builder.ToTable("SalesOrderLines");
 
-        builder.HasKey(x => new { x.SalesOrderId, x.ProductId });
+        builder.HasKey(x => new { x.SalesOrderId, x.ProductId, x.RowNumber });
 
         builder.Property(x => x.OrderedQty)
             .HasPrecision(18, 4);

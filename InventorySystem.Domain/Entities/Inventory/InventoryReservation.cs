@@ -2,6 +2,7 @@
 {
     public class InventoryReservation : BaseEntity
     {
+        public int LayerId { get; set; }
         public int ProductId { get; set; }
         public decimal ReservedQty { get; set; }
         public string SourceType { get; set; } = "SalesOrder";

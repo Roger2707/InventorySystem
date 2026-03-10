@@ -1,8 +1,7 @@
-﻿using Dapper;
-using InventorySystem.Application.DTOs.Products;
+﻿using InventorySystem.Application.DTOs.Products;
 using InventorySystem.Application.Interfaces;
 using InventorySystem.Application.Interfaces.Queries;
-using InventorySystem.Domain.Common;
+
 
 namespace InventorySystem.Infrastructure.Queries
 {
