@@ -1,4 +1,4 @@
-﻿using InventorySystem.Domain.Delivery;
+﻿using InventorySystem.Domain.Entities.Delivery;
 
 namespace InventorySystem.Application.Interfaces
 {

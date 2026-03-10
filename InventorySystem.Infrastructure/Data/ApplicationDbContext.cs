@@ -8,7 +8,7 @@ using InventorySystem.Domain.Entities.Inventory;
 using InventorySystem.Domain.Entities.PurchaseOrder;
 using InventorySystem.Domain.Entities.StockTransfer;
 using InventorySystem.Domain.Entities.SalesOrder;
-using InventorySystem.Domain.Delivery;
+using InventorySystem.Domain.Entities.Delivery;
 
 namespace InventorySystem.Infrastructure.Data;
 
@@ -50,7 +50,7 @@ public class ApplicationDbContext : DbContext
     // Inventory entities
     public DbSet<InventoryLedger> InventoryLedgers { get; set; }
     public DbSet<InventoryCostLayer> InventoryCostLayers { get; set; }
-    public DbSet<InventoryReservation> InventoryReservationLayers { get; set; }
+    public DbSet<InventoryReservation> InventoryReservations { get; set; }
 
     // Supplier pricing
     public DbSet<SupplierProductPrice> SupplierProductPrices { get; set; }

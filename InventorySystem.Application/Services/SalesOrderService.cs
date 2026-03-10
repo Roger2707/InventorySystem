@@ -47,12 +47,47 @@ namespace InventorySystem.Application.Services
             if (!isCustomerExisted)
                 return Result<SalesOrderDto>.Failure($"Customer ID {createSalesOrderDto.CustomerId} is not Existed !");
 
-            //var inventory_product = await _unitOfWork.InventoryCostLayerRepository.GetFIFOProductById()
+            var salesOrderLine = new List<SalesOrderLine>();
+            foreach(var createLine in createSalesOrderDto.CreateLinesDto)
+            {
+                var inventory_products = await _unitOfWork.InventoryCostLayerRepository.GetFIFOProductsById(createLine.ProductId);
+                if (inventory_products == null || inventory_products.Count == 0)
+                    return Result<SalesOrderDto>.Failure($"Product id: {createLine.ProductId} is not exist in Inventory.");
+
+                // check if over quantity
+                
+                foreach(var inventory_product in inventory_products)
+                {
+                    if(inventory_product.RemainingQty < createLine.OrderedQty)
+                    {
+
+                    }
+                }
+
+                salesOrderLine.Add(new SalesOrderLine
+                {
+                    ProductId = createLine.ProductId,
+                    //UnitPrice = inventory_products.UnitCost,
+                    OrderedQty = createLine.OrderedQty
+                });
+            }
 
             #endregion
 
+            string orderNumber = await _salesOrderGenerator.GenerateAsync(cancellationToken);
+            var salesOrder = new SalesOrder
+            {
+                OrderNumber = orderNumber,
+                CustomerId = createSalesOrderDto.CustomerId,
+                OrderDate = DateTime.Now,
+                Lines = salesOrderLine
+            };
+
             throw new NotImplementedException();
         }
+
+        
+
         public Task<Result<SalesOrderDto>> UpdateAsync(int id, UpdateSalesOrderDto updateSalesOrderDto, CancellationToken cancellationToken = default)
         {
             throw new NotImplementedException();
@@ -91,13 +126,16 @@ namespace InventorySystem.Application.Services
                 OrderDate = entity.OrderDate,
                 Status = entity.Status,
                 CustomerName = entity.Customer.CustomerName,
+                TotalAmount = entity.TotalAmount,
                 LinesDto = entity.Lines.Select(l => new SalesOrderLineDto
                 {
                     ProductId = l.ProductId,
                     ProductName = l.Product.Name,
                     DeliveredQty = l.DeliveredQty,
                     OrderedQty = l.OrderedQty,
+                    RemainingQty = l.RemainingQty,
                     UnitPrice = l.UnitPrice,
+                    LineTotal = l.LineTotal,
                 }).ToList(),
             };
         }

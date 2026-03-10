@@ -1,0 +1,34 @@
+using InventorySystem.Domain.Entities.Delivery;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+
+namespace InventorySystem.Infrastructure.Data.Configurations;
+
+public class DeliveryLineConfiguration : IEntityTypeConfiguration<DeliveryLine>
+{
+    public void Configure(EntityTypeBuilder<DeliveryLine> builder)
+    {
+        builder.ToTable("DeliveryLines");
+
+        builder.HasKey(x => new { x.DeliveryId, x.ProductId });
+
+        builder.Property(x => x.Quantity)
+            .HasPrecision(18, 4);
+
+        builder.Property(x => x.UnitPrice)
+            .HasPrecision(18, 4);
+
+        builder.Ignore(x => x.LineTotal);
+
+        builder.HasOne(x => x.Product)
+            .WithMany()
+            .HasForeignKey(x => x.ProductId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne<Delivery>()
+            .WithMany(x => x.Lines)
+            .HasForeignKey(x => x.DeliveryId)
+            .OnDelete(DeleteBehavior.Restrict);
+    }
+}
+

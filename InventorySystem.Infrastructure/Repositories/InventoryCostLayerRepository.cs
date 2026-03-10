@@ -12,15 +12,14 @@ public class InventoryCostLayerRepository : Repository<InventoryCostLayer>, IInv
     {
     }
 
-    public async Task<InventoryCostLayerDto> GetFIFOProductById(int productId, CancellationToken cancellationToken = default)
+    public async Task<List<InventoryCostLayerDto>> GetFIFOProductsById(int productId, CancellationToken cancellationToken = default)
     {
-        var inventory_product = await _context.InventoryCostLayers
+        var inventory_products = await _context.InventoryCostLayers
             .Where(i => i.ProductId == productId)
             .OrderBy(i => i.CreatedAt)
-            .Take(1)            
-            .FirstOrDefaultAsync();
+            .ToListAsync(cancellationToken);
 
-        return MapToDto(inventory_product);
+        return inventory_products.Select(MapToDto).ToList();
     }
 
     private static InventoryCostLayerDto MapToDto(InventoryCostLayer entity)

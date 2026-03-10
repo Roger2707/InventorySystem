@@ -5,6 +5,6 @@ namespace InventorySystem.Application.Interfaces;
 
 public interface IInventoryCostLayerRepository : IRepository<InventoryCostLayer>
 {
-    Task<InventoryCostLayerDto> GetFIFOProductById(int productId, CancellationToken cancellationToken = default);
+    Task<List<InventoryCostLayerDto>> GetFIFOProductsById(int productId, CancellationToken cancellationToken = default);
 }
 
