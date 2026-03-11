@@ -4,7 +4,6 @@ using InventorySystem.Application.Interfaces.Services;
 using InventorySystem.Domain.Common;
 using InventorySystem.Domain.Entities.Delivery;
 using InventorySystem.Domain.Entities.Inventory;
-using InventorySystem.Domain.Entities.SalesOrder;
 using InventorySystem.Domain.Enums;
 
 namespace InventorySystem.Application.Services
@@ -66,14 +65,14 @@ namespace InventorySystem.Application.Services
                 if (salesOrderLine == null)
                     return Result<DeliveryDto>.Failure($"Product ID {deliveryLineDto.ProductId} is not Exist in SalesOrder {salesOrderLine.SalesOrderId} !");
 
-                if (deliveryLineDto.Quantity > salesOrderLine.RemainingQty)
+                if (deliveryLineDto.DeliveredQty > salesOrderLine.RemainingQty)
                     return Result<DeliveryDto>.Failure("Delivery Qty cannot be greater than RemainingQty");
 
                 var deliveryLine = new DeliveryLine
                 {
                     ProductId = deliveryLineDto.ProductId,
                     RowNumber = deliveryLineDto.RowNumber,
-                    Quantity = deliveryLineDto.Quantity,
+                    DeliveredQty = deliveryLineDto.DeliveredQty,
                     UnitPrice = salesOrderLine.UnitPrice,
                 };
                 deliveriesLines.Add(deliveryLine);
@@ -84,7 +83,7 @@ namespace InventorySystem.Application.Services
             {
                 OrderNumber = orderNumber,
                 SalesOrderId = createDeliveryDto.SalesOrderId,
-                TotalAmount = deliveriesLines.Sum(l => l.UnitPrice * l.Quantity),
+                TotalAmount = deliveriesLines.Sum(l => l.UnitPrice * l.DeliveredQty),
                 Lines = deliveriesLines
             };
 
@@ -131,14 +130,14 @@ namespace InventorySystem.Application.Services
                 if (salesOrderLine == null)
                     return Result<DeliveryDto>.Failure($"Product ID {updateDeliveryLineDto.ProductId} is not Exist in SalesOrder {salesOrderLine.SalesOrderId} !");
 
-                if (updateDeliveryLineDto.Quantity > salesOrderLine.RemainingQty)
+                if (updateDeliveryLineDto.DeliveredQty > salesOrderLine.RemainingQty)
                     return Result<DeliveryDto>.Failure("Delivery Qty cannot be greater than RemainingQty");
 
                 var existedDeliveryLine = existedDelivery.Lines
                     .FirstOrDefault(e => e.ProductId == updateDeliveryLineDto.ProductId && e.RowNumber == updateDeliveryLineDto.RowNumber);
                 if(existedDeliveryLine != null)
                 {
-                    existedDeliveryLine.Quantity = updateDeliveryLineDto.Quantity;
+                    existedDeliveryLine.DeliveredQty = updateDeliveryLineDto.DeliveredQty;
                 }
                 else
                 {
@@ -146,7 +145,7 @@ namespace InventorySystem.Application.Services
                     {
                         ProductId = updateDeliveryLineDto.ProductId,
                         RowNumber = updateDeliveryLineDto.RowNumber,
-                        Quantity = updateDeliveryLineDto.Quantity,
+                        DeliveredQty = updateDeliveryLineDto.DeliveredQty,
                         UnitPrice = salesOrderLine.UnitPrice,
                     };
                     existedDelivery.Lines.Add(newDeliveryLine);
@@ -202,11 +201,11 @@ namespace InventorySystem.Application.Services
                     if(salesOrderLine == null)
                         return Result.Failure($"This DeliveryLine {deliveryLine.RowNumber}: Product_{deliveryLine.ProductId} is not found SalesOrderLine !");
 
-                    if(deliveryLine.Quantity > salesOrderLine.RemainingQty)
+                    if(deliveryLine.DeliveredQty > salesOrderLine.RemainingQty)
                         return Result.Failure($"This DeliveryLine {deliveryLine.RowNumber}: Product_{deliveryLine.ProductId} has quanty greater than SalesOrderLine !");
 
                     // Update SalesOrderLine Qty
-                    salesOrderLine.DeliveredQty += deliveryLine.Quantity;
+                    salesOrderLine.DeliveredQty += deliveryLine.DeliveredQty;
 
                     // Check each Line OrderQuanty and DeliveredQty
                     if (salesOrderLine.DeliveredQty >= salesOrderLine.OrderedQty)
@@ -217,21 +216,21 @@ namespace InventorySystem.Application.Services
                         return Result.Failure($"This DeliveryLine {deliveryLine.RowNumber}: Product_{deliveryLine.ProductId}, SalesOrder: {salesOrderLine.SalesOrderId}, Row: {salesOrderLine.RowNumber} can not find Reservation !");
 
                     // Reduce ReservedQty in Reservation entity
-                    if (reservation.ReservedQty < deliveryLine.Quantity)
+                    if (reservation.ReservedQty < deliveryLine.DeliveredQty)
                         return Result.Failure("Reservation not enough");
 
-                    reservation.ReservedQty -= deliveryLine.Quantity;
+                    reservation.ReservedQty -= deliveryLine.DeliveredQty;
                     if(reservation.ReservedQty == 0)
                         reservation.IsDeleted = true;
 
                     // Cost Layer
                     int costLayerId = reservation.LayerId;
                     var costLayer = await _unitOfWork.InventoryCostLayerRepository.GetByIdAsync(costLayerId, cancellationToken);
-                    if (costLayer.RemainingQty < deliveryLine.Quantity)
+                    if (costLayer.RemainingQty < deliveryLine.DeliveredQty)
                         return Result.Failure("Cost layer not enough");
 
-                    costLayer.RemainingQty -= deliveryLine.Quantity;
-                    costLayer.ReservedQty -= deliveryLine.Quantity;
+                    costLayer.RemainingQty -= deliveryLine.DeliveredQty;
+                    costLayer.ReservedQty -= deliveryLine.DeliveredQty;
 
                     // Ledger (History Transactions)
                     var ledger = new InventoryLedger
@@ -242,9 +241,9 @@ namespace InventorySystem.Application.Services
                         ReferenceId = delivery.SalesOrderId,
                         ReferenceType = "SalesOrder",
                         QuantityIn = 0,
-                        QuantityOut = deliveryLine.Quantity,
+                        QuantityOut = deliveryLine.DeliveredQty,
                         UnitCost = costLayer.UnitCost,
-                        TotalCost = costLayer.UnitCost * deliveryLine.Quantity
+                        TotalCost = costLayer.UnitCost * deliveryLine.DeliveredQty
                     };
 
                     await _unitOfWork.InventoryLedgerRepository.AddAsync(ledger);
@@ -301,7 +300,8 @@ namespace InventorySystem.Application.Services
                     {
                         DeliveryId = entity.Id,
                         ProductId = l.ProductId,
-                        Quantity = l.Quantity,
+                        DeliveredQty = l.DeliveredQty,
+                        InvoicedQty = l.InvoicedQty,
                         UnitPrice = l.UnitPrice,     
                         LineTotal = l.LineTotal,
                     })

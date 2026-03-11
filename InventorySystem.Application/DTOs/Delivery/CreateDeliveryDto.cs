@@ -10,6 +10,6 @@
     {
         public int ProductId { get; set; }
         public int RowNumber { get; set; }
-        public decimal Quantity { get; set; }
+        public decimal DeliveredQty { get; set; }
     }
 }

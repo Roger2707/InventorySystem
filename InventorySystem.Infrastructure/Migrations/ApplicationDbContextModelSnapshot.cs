@@ -28,6 +28,8 @@ namespace InventorySystem.Infrastructure.Migrations
             modelBuilder.HasSequence<int>("GoodsReceiptSequence")
                 .StartsAt(10L);
 
+            modelBuilder.HasSequence<int>("InvoiceSequence");
+
             modelBuilder.HasSequence<int>("ProductBarcodeSequence");
 
             modelBuilder.HasSequence<int>("ProductSkuSequence");
@@ -679,6 +681,99 @@ namespace InventorySystem.Infrastructure.Migrations
                     b.HasIndex("IsDeleted");
 
                     b.ToTable("InventoryReservations", (string)null);
+                });
+
+            modelBuilder.Entity("InventorySystem.Domain.Entities.Invoice.Invoice", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("DeliveryId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("InvoiceDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("InvoiceNumber")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("SalesOrderId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsDeleted");
+
+                    b.ToTable("Invoices", (string)null);
+                });
+
+            modelBuilder.Entity("InventorySystem.Domain.Entities.Invoice.InvoiceLine", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("DeliveryLineId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("InvoiceId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<decimal>("Quantity")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InvoiceId");
+
+                    b.HasIndex("IsDeleted");
+
+                    b.ToTable("InvoiceLines", (string)null);
                 });
 
             modelBuilder.Entity("InventorySystem.Domain.Entities.Products.Category", b =>
@@ -1401,6 +1496,15 @@ namespace InventorySystem.Infrastructure.Migrations
                     b.Navigation("Warehouse");
                 });
 
+            modelBuilder.Entity("InventorySystem.Domain.Entities.Invoice.InvoiceLine", b =>
+                {
+                    b.HasOne("InventorySystem.Domain.Entities.Invoice.Invoice", null)
+                        .WithMany("Lines")
+                        .HasForeignKey("InvoiceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("InventorySystem.Domain.Entities.Products.Product", b =>
                 {
                     b.HasOne("InventorySystem.Domain.Entities.Products.UoM", "BaseUoM")
@@ -1532,6 +1636,11 @@ namespace InventorySystem.Infrastructure.Migrations
                     b.Navigation("UserRoles");
 
                     b.Navigation("UserWarehouses");
+                });
+
+            modelBuilder.Entity("InventorySystem.Domain.Entities.Invoice.Invoice", b =>
+                {
+                    b.Navigation("Lines");
                 });
 
             modelBuilder.Entity("InventorySystem.Domain.Entities.Products.Product", b =>

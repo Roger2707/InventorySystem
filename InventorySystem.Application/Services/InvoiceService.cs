@@ -3,6 +3,7 @@ using InventorySystem.Application.Interfaces;
 using InventorySystem.Application.Interfaces.Services;
 using InventorySystem.Domain.Common;
 using InventorySystem.Domain.Entities.Invoice;
+using InventorySystem.Domain.Enums;
 
 namespace InventorySystem.Application.Services
 {
@@ -19,32 +20,50 @@ namespace InventorySystem.Application.Services
 
         #region GETs
 
-        public Task<Result<List<InvoiceDto>>> GetAllAsync(CancellationToken cancellationToken = default)
+        public async Task<Result<List<InvoiceDto>>> GetAllAsync(CancellationToken cancellationToken = default)
         {
-            throw new NotImplementedException();
+            var invoices = await _unitOfWork.InvoiceRepository.GetAllWithLinesAsync(cancellationToken);
+            var dtos = invoices.Select(MapToDto).ToList();
+            return Result<List<InvoiceDto>>.Success(dtos);
         }
 
-        public Task<Result<InvoiceDto>> GetWithLinesAsync(int id, CancellationToken cancellationToken = default)
+        public async Task<Result<InvoiceDto>> GetWithLinesAsync(int id, CancellationToken cancellationToken = default)
         {
-            throw new NotImplementedException();
+            var invoice = await _unitOfWork.InvoiceRepository.GetWithLinesAsync(id, cancellationToken);
+            if (invoice == null)
+                return Result<InvoiceDto>.Failure($"Invoice {id} is not existed !");
+
+            var dto = MapToDto(invoice);
+            return Result<InvoiceDto>.Success(dto);
         }
 
         #endregion
 
         #region CRUDs
 
-        public Task<Result<InvoiceDto>> CreateAsync(CreateInvoiceDto createInvoiceDto, CancellationToken cancellationToken = default)
+        public async Task<Result<InvoiceDto>> CreateAsync(CreateInvoiceDto createInvoiceDto, CancellationToken cancellationToken = default)
         {
+            var delivery = await _unitOfWork.DeliveryRepository.GetWithLinesAsync(createInvoiceDto.DeliveryId, cancellationToken);
+            if (delivery == null || delivery.Status != DeliveryStatus.Posted)
+                return Result<InvoiceDto>.Failure("Delivery is not valid !");
+
             throw new NotImplementedException();
         }
 
-        public Task<Result> DeleteAsync(int id, CancellationToken cancellationToken = default)
+        public async Task<Result> DeleteAsync(int id, CancellationToken cancellationToken = default)
         {
-            throw new NotImplementedException();
+            var invoice = await _unitOfWork.InvoiceRepository.GetByIdAsync(id);
+            if (invoice == null)
+                return Result.Failure($"Invoice : {id} is not existed !");
+
+            invoice.IsDeleted = true;
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            return Result.Success();
         }
-        public Task<Result<bool>> ExistAsync(int id, CancellationToken cancellationToken = default)
+        public async Task<Result<bool>> ExistAsync(int id, CancellationToken cancellationToken = default)
         {
-            throw new NotImplementedException();
+            var isExist = await _unitOfWork.InvoiceRepository.ExistsAsync(i => i.Id == id);
+            return Result<bool>.Success(isExist);
         }
 
         #endregion

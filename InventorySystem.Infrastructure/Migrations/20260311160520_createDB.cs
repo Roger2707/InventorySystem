@@ -20,6 +20,9 @@ namespace InventorySystem.Infrastructure.Migrations
                 startValue: 10L);
 
             migrationBuilder.CreateSequence<int>(
+                name: "InvoiceSequence");
+
+            migrationBuilder.CreateSequence<int>(
                 name: "ProductBarcodeSequence");
 
             migrationBuilder.CreateSequence<int>(
@@ -174,6 +177,7 @@ namespace InventorySystem.Infrastructure.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     LayerId = table.Column<int>(type: "int", nullable: false),
                     ProductId = table.Column<int>(type: "int", nullable: false),
+                    RowNumber = table.Column<int>(type: "int", nullable: false),
                     ReservedQty = table.Column<decimal>(type: "decimal(18,4)", precision: 18, scale: 4, nullable: false),
                     SourceType = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     SourceId = table.Column<int>(type: "int", nullable: false),
@@ -186,6 +190,28 @@ namespace InventorySystem.Infrastructure.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_InventoryReservations", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Invoices",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    SalesOrderId = table.Column<int>(type: "int", nullable: false),
+                    DeliveryId = table.Column<int>(type: "int", nullable: false),
+                    InvoiceNumber = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    InvoiceDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    TotalAmount = table.Column<decimal>(type: "decimal(18,4)", precision: 18, scale: 4, nullable: false),
+                    Status = table.Column<int>(type: "int", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false),
+                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Invoices", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -419,6 +445,32 @@ namespace InventorySystem.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "InvoiceLines",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    InvoiceId = table.Column<int>(type: "int", nullable: false),
+                    DeliveryLineId = table.Column<int>(type: "int", nullable: false),
+                    Quantity = table.Column<decimal>(type: "decimal(18,4)", precision: 18, scale: 4, nullable: false),
+                    UnitPrice = table.Column<decimal>(type: "decimal(18,4)", precision: 18, scale: 4, nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false),
+                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_InvoiceLines", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_InvoiceLines_Invoices_InvoiceId",
+                        column: x => x.InvoiceId,
+                        principalTable: "Invoices",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "PurchaseOrderLines",
                 columns: table => new
                 {
@@ -639,12 +691,13 @@ namespace InventorySystem.Infrastructure.Migrations
                 {
                     DeliveryId = table.Column<int>(type: "int", nullable: false),
                     ProductId = table.Column<int>(type: "int", nullable: false),
+                    RowNumber = table.Column<int>(type: "int", nullable: false),
                     Quantity = table.Column<decimal>(type: "decimal(18,4)", precision: 18, scale: 4, nullable: false),
                     UnitPrice = table.Column<decimal>(type: "decimal(18,4)", precision: 18, scale: 4, nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_DeliveryLines", x => new { x.DeliveryId, x.ProductId });
+                    table.PrimaryKey("PK_DeliveryLines", x => new { x.DeliveryId, x.ProductId, x.RowNumber });
                     table.ForeignKey(
                         name: "FK_DeliveryLines_Deliveries_DeliveryId",
                         column: x => x.DeliveryId,
@@ -763,6 +816,21 @@ namespace InventorySystem.Infrastructure.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_InventoryReservations_IsDeleted",
                 table: "InventoryReservations",
+                column: "IsDeleted");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InvoiceLines_InvoiceId",
+                table: "InvoiceLines",
+                column: "InvoiceId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InvoiceLines_IsDeleted",
+                table: "InvoiceLines",
+                column: "IsDeleted");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Invoices_IsDeleted",
+                table: "Invoices",
                 column: "IsDeleted");
 
             migrationBuilder.CreateIndex(
@@ -990,6 +1058,9 @@ namespace InventorySystem.Infrastructure.Migrations
                 name: "InventoryReservations");
 
             migrationBuilder.DropTable(
+                name: "InvoiceLines");
+
+            migrationBuilder.DropTable(
                 name: "ProductUoMConversions");
 
             migrationBuilder.DropTable(
@@ -1024,6 +1095,9 @@ namespace InventorySystem.Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "GoodsReceipts");
+
+            migrationBuilder.DropTable(
+                name: "Invoices");
 
             migrationBuilder.DropTable(
                 name: "PurchaseOrders");
@@ -1066,6 +1140,9 @@ namespace InventorySystem.Infrastructure.Migrations
 
             migrationBuilder.DropSequence(
                 name: "GoodsReceiptSequence");
+
+            migrationBuilder.DropSequence(
+                name: "InvoiceSequence");
 
             migrationBuilder.DropSequence(
                 name: "ProductBarcodeSequence");

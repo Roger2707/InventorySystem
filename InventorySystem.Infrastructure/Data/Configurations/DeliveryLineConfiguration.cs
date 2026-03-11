@@ -12,12 +12,16 @@ public class DeliveryLineConfiguration : IEntityTypeConfiguration<DeliveryLine>
 
         builder.HasKey(x => new { x.DeliveryId, x.ProductId, x.RowNumber });
 
-        builder.Property(x => x.Quantity)
+        builder.Property(x => x.DeliveredQty)
+            .HasPrecision(18, 4);
+
+        builder.Property(x => x.InvoicedQty)
             .HasPrecision(18, 4);
 
         builder.Property(x => x.UnitPrice)
             .HasPrecision(18, 4);
 
+        builder.Ignore(x => x.RemainingInvoicedQty);
         builder.Ignore(x => x.LineTotal);
 
         builder.HasOne(x => x.Product)
