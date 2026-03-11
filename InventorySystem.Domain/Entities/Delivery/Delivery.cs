@@ -1,5 +1,4 @@
-﻿using InventorySystem.Domain.Entities;
-using InventorySystem.Domain.Enums;
+﻿using InventorySystem.Domain.Enums;
 
 namespace InventorySystem.Domain.Entities.Delivery
 {
@@ -8,9 +7,9 @@ namespace InventorySystem.Domain.Entities.Delivery
         public string OrderNumber { get; set; }
         public int SalesOrderId { get; set; }
 
-        public DeliveryStatus Status { get; set; }
+        public DeliveryStatus Status { get; set; } = DeliveryStatus.Draft;
 
-        public DateTime DeliveryDate { get; set; }
+        public DateTime DeliveryDate { get; set; } = DateTime.UtcNow;
         public decimal TotalAmount { get; set; }
 
         public List<DeliveryLine> Lines { get; set; } = new();

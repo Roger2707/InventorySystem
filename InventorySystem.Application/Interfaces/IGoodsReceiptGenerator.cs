@@ -1,4 +1,4 @@
-﻿namespace InventorySystem.Application.Interfaces.Services
+﻿namespace InventorySystem.Application.Interfaces
 {
     public interface IGoodsReceiptGenerator
     {

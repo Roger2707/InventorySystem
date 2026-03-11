@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace InventorySystem.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260310160541_createDB")]
+    [Migration("20260311013605_createDB")]
     partial class createDB
     {
         /// <inheritdoc />
@@ -1026,6 +1026,9 @@ namespace InventorySystem.Infrastructure.Migrations
                     b.Property<int>("ProductId")
                         .HasColumnType("int");
 
+                    b.Property<int>("RowNumber")
+                        .HasColumnType("int");
+
                     b.Property<decimal>("DeliveredQty")
                         .HasPrecision(18, 4)
                         .HasColumnType("decimal(18,4)");
@@ -1038,7 +1041,7 @@ namespace InventorySystem.Infrastructure.Migrations
                         .HasPrecision(18, 4)
                         .HasColumnType("decimal(18,4)");
 
-                    b.HasKey("SalesOrderId", "ProductId");
+                    b.HasKey("SalesOrderId", "ProductId", "RowNumber");
 
                     b.HasIndex("ProductId");
 

@@ -10,7 +10,7 @@ public class DeliveryLineConfiguration : IEntityTypeConfiguration<DeliveryLine>
     {
         builder.ToTable("DeliveryLines");
 
-        builder.HasKey(x => new { x.DeliveryId, x.ProductId });
+        builder.HasKey(x => new { x.DeliveryId, x.ProductId, x.RowNumber });
 
         builder.Property(x => x.Quantity)
             .HasPrecision(18, 4);

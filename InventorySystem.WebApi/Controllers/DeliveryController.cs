@@ -1,4 +1,4 @@
-using InventorySystem.Application.DTOs.SalesOrder;
+using InventorySystem.Application.DTOs.Delivery;
 using InventorySystem.Application.Interfaces.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -6,19 +6,19 @@ namespace InventorySystem.WebApi.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class SalesOrderController : ControllerBase
+public class DeliveryController : ControllerBase
 {
-    private readonly ISalesOrderService _salesOrderService;
+    private readonly IDeliveryService _deliveryService;
 
-    public SalesOrderController(ISalesOrderService salesOrderService)
+    public DeliveryController(IDeliveryService deliveryService)
     {
-        _salesOrderService = salesOrderService;
+        _deliveryService = deliveryService;
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<SalesOrderDto>>> GetAll(CancellationToken cancellationToken = default)
+    public async Task<ActionResult<IEnumerable<DeliveryDto>>> GetAll(CancellationToken cancellationToken = default)
     {
-        var result = await _salesOrderService.GetAllAsync(cancellationToken);
+        var result = await _deliveryService.GetAllAsync(cancellationToken);
 
         if (!result.IsSuccess)
         {
@@ -29,9 +29,9 @@ public class SalesOrderController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<SalesOrderDto>> GetById(int id, CancellationToken cancellationToken = default)
+    public async Task<ActionResult<DeliveryDto>> GetById(int id, CancellationToken cancellationToken = default)
     {
-        var result = await _salesOrderService.GetWithLinesAsync(id, cancellationToken);
+        var result = await _deliveryService.GetWithLinesAsync(id, cancellationToken);
 
         if (!result.IsSuccess)
         {
@@ -42,14 +42,14 @@ public class SalesOrderController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult<SalesOrderDto>> Create([FromBody] CreateSalesOrderDto createGoodsReceipt, CancellationToken cancellationToken = default)
+    public async Task<ActionResult<DeliveryDto>> Create([FromBody] CreateDeliveryDto createGoodsReceipt, CancellationToken cancellationToken = default)
     {
         if (!ModelState.IsValid)
         {
             return BadRequest(ModelState);
         }
 
-        var result = await _salesOrderService.CreateAsync(createGoodsReceipt, cancellationToken);
+        var result = await _deliveryService.CreateAsync(createGoodsReceipt, cancellationToken);
         if (!result.IsSuccess)
         {
             return BadRequest(result.ErrorMessage);
@@ -58,14 +58,14 @@ public class SalesOrderController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    public async Task<ActionResult<SalesOrderDto>> Update(int id, [FromBody] UpdateSalesOrderDto updateDto, CancellationToken cancellationToken = default)
+    public async Task<ActionResult<DeliveryDto>> Update(int id, [FromBody] UpdateDeliveryDto updateDto, CancellationToken cancellationToken = default)
     {
         if (!ModelState.IsValid)
         {
             return BadRequest(ModelState);
         }
 
-        var result = await _salesOrderService.UpdateAsync(id, updateDto, cancellationToken);
+        var result = await _deliveryService.UpdateAsync(id, updateDto, cancellationToken);
 
         if (!result.IsSuccess)
         {
@@ -82,7 +82,7 @@ public class SalesOrderController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<ActionResult> Delete(int id, CancellationToken cancellationToken = default)
     {
-        var result = await _salesOrderService.DeleteAsync(id, cancellationToken);
+        var result = await _deliveryService.DeleteAsync(id, cancellationToken);
 
         if (!result.IsSuccess)
         {
@@ -94,14 +94,14 @@ public class SalesOrderController : ControllerBase
     [HttpGet("{id}/exists")]
     public async Task<ActionResult<bool>> Exists(int id, CancellationToken cancellationToken = default)
     {
-        var result = await _salesOrderService.ExistAsync(id, cancellationToken);
+        var result = await _deliveryService.ExistAsync(id, cancellationToken);
         return Ok(result.Data);
     }
 
-    [HttpPost("{id}/confirm")]
+    [HttpPost("{id}/post")]
     public async Task<ActionResult> Confirm(int id, CancellationToken cancellationToken = default)
     {
-        var result = await _salesOrderService.ConfirmAsync(id, cancellationToken);
+        var result = await _deliveryService.PostAsync(id, cancellationToken);
         if (!result.IsSuccess)
         {
             return BadRequest(result.ErrorMessage);

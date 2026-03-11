@@ -697,13 +697,14 @@ namespace InventorySystem.Infrastructure.Migrations
                 {
                     SalesOrderId = table.Column<int>(type: "int", nullable: false),
                     ProductId = table.Column<int>(type: "int", nullable: false),
+                    RowNumber = table.Column<int>(type: "int", nullable: false),
                     OrderedQty = table.Column<decimal>(type: "decimal(18,4)", precision: 18, scale: 4, nullable: false),
                     DeliveredQty = table.Column<decimal>(type: "decimal(18,4)", precision: 18, scale: 4, nullable: false),
                     UnitPrice = table.Column<decimal>(type: "decimal(18,4)", precision: 18, scale: 4, nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_SalesOrderLines", x => new { x.SalesOrderId, x.ProductId });
+                    table.PrimaryKey("PK_SalesOrderLines", x => new { x.SalesOrderId, x.ProductId, x.RowNumber });
                     table.ForeignKey(
                         name: "FK_SalesOrderLines_Products_ProductId",
                         column: x => x.ProductId,

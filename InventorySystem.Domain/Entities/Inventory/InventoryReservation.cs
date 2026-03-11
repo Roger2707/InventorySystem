@@ -4,6 +4,7 @@
     {
         public int LayerId { get; set; }
         public int ProductId { get; set; }
+        public int RowNumber { get; set; } = 0;
         public decimal ReservedQty { get; set; }
         public string SourceType { get; set; } = "SalesOrder";
         public int SourceId { get; set; }

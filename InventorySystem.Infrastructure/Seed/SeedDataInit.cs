@@ -741,8 +741,9 @@ namespace InventorySystem.Infrastructure.Seed
             if (context.PurchaseOrders.Any()) return;
 
             var random = new Random();
-
             var purchaseOrders = new List<PurchaseOrder>();
+
+            int sharedProductId = 1;
 
             for (int i = 1; i <= 10; i++)
             {
@@ -759,16 +760,21 @@ namespace InventorySystem.Infrastructure.Seed
                 };
 
                 int lineCount = random.Next(2, 5);
-                decimal totalAmount = 0;
 
                 var productIds = Enumerable.Range(1, 20)
                     .OrderBy(x => random.Next())
                     .Take(lineCount)
                     .ToList();
 
+                // đảm bảo ProductId = 1 tồn tại
+                if (!productIds.Contains(sharedProductId))
+                    productIds[0] = sharedProductId;
+
+                decimal totalAmount = 0;
+
                 foreach (var productId in productIds)
                 {
-                    var orderedQty = random.Next(10, 100);
+                    var orderedQty = random.Next(20, 100);
                     var unitPrice = random.Next(50_000, 500_000);
 
                     var line = new PurchaseOrderLine
@@ -796,10 +802,11 @@ namespace InventorySystem.Infrastructure.Seed
             if (context.GoodsReceipts.Any()) return;
 
             var random = new Random();
+            int sharedProductId = 1;
 
-            var purchaseOrders = context.PurchaseOrders
+            var purchaseOrders = await context.PurchaseOrders
                 .Include(x => x.Lines)
-                .ToList();
+                .ToListAsync();
 
             if (!purchaseOrders.Any()) return;
 
@@ -821,33 +828,58 @@ namespace InventorySystem.Infrastructure.Seed
                     Lines = new List<GoodsReceiptLine>()
                 };
 
-                int lineCount = random.Next(1, 3);
-
-                var poLines = po.Lines
-                    .OrderBy(x => random.Next())
-                    .Take(lineCount)
-                    .ToList();
+                var usedProducts = new HashSet<int>();
 
                 decimal totalAmount = 0;
 
-                foreach (var poLine in poLines)
+                // đảm bảo ProductId=1 có trong 3 GR đầu
+                if (i <= 3)
                 {
-                    var receivedQty = random.Next(1, (int)poLine.OrderedQty + 1);
+                    var poLine = po.Lines.FirstOrDefault(x => x.ProductId == sharedProductId);
 
-                    // cost dao động nhẹ quanh unit price
-                    var unitCost = poLine.UnitPrice * (decimal)(0.9 + random.NextDouble() * 0.2);
+                    if (poLine != null)
+                    {
+                        var qty = random.Next(5, (int)poLine.OrderedQty);
 
-                    var line = new GoodsReceiptLine
+                        var cost = poLine.UnitPrice * (decimal)(0.9 + random.NextDouble() * 0.2);
+
+                        receipt.Lines.Add(new GoodsReceiptLine
+                        {
+                            PurchaseOrderId = po.Id,
+                            ProductId = sharedProductId,
+                            ReceivedQty = qty,
+                            UnitCost = Math.Round(cost, 2)
+                        });
+
+                        usedProducts.Add(sharedProductId);
+
+                        totalAmount += qty * (decimal)Math.Round(cost, 2);
+                    }
+                }
+
+                int extraLines = random.Next(1, 3);
+
+                var randomLines = po.Lines
+                    .OrderBy(x => random.Next())
+                    .Where(x => !usedProducts.Contains(x.ProductId))
+                    .Take(extraLines)
+                    .ToList();
+
+                foreach (var poLine in randomLines)
+                {
+                    var qty = random.Next(1, (int)poLine.OrderedQty + 1);
+
+                    var cost = poLine.UnitPrice * (decimal)(0.9 + random.NextDouble() * 0.2);
+
+                    receipt.Lines.Add(new GoodsReceiptLine
                     {
                         PurchaseOrderId = po.Id,
                         ProductId = poLine.ProductId,
-                        ReceivedQty = receivedQty,
-                        UnitCost = Math.Round(unitCost, 2)
-                    };
+                        ReceivedQty = qty,
+                        UnitCost = Math.Round(cost, 2)
+                    });
 
-                    totalAmount += line.LineTotal;
-
-                    receipt.Lines.Add(line);
+                    totalAmount += qty * (decimal)Math.Round(cost, 2);
                 }
 
                 receipt.TotalAmount = totalAmount;
@@ -863,9 +895,12 @@ namespace InventorySystem.Infrastructure.Seed
         {
             if (context.InventoryCostLayers.Any()) return;
 
-            var receipts = context.GoodsReceipts
+            var receipts = await context.GoodsReceipts
                 .Include(x => x.Lines)
-                .ToList();
+                .OrderBy(x => x.ReceiptDate) // FIFO order
+                .ToListAsync();
+
+            if (!receipts.Any()) return;
 
             var costLayers = new List<InventoryCostLayer>();
             var ledgers = new List<InventoryLedger>();
@@ -874,15 +909,18 @@ namespace InventorySystem.Infrastructure.Seed
             {
                 foreach (var line in receipt.Lines)
                 {
-                    // FIFO Layer
+                    var originalQty = line.ReceivedQty;
+                    var totalCost = originalQty * line.UnitCost;
+
+                    // FIFO Cost Layer
                     var layer = new InventoryCostLayer
                     {
                         GoodsReceiptId = receipt.Id,
                         ProductId = line.ProductId,
                         WarehouseId = receipt.WarehouseId,
 
-                        OriginalQty = line.ReceivedQty,
-                        RemainingQty = line.ReceivedQty,
+                        OriginalQty = originalQty,
+                        RemainingQty = originalQty,
                         ReservedQty = 0,
 
                         UnitCost = line.UnitCost,
@@ -891,7 +929,7 @@ namespace InventorySystem.Infrastructure.Seed
 
                     costLayers.Add(layer);
 
-                    // Inventory Ledger (IN)
+                    // Inventory Ledger (Stock IN)
                     var ledger = new InventoryLedger
                     {
                         ProductId = line.ProductId,
@@ -902,11 +940,11 @@ namespace InventorySystem.Infrastructure.Seed
                         ReferenceId = receipt.Id,
                         ReferenceType = "GoodsReceipt",
 
-                        QuantityIn = line.ReceivedQty,
+                        QuantityIn = originalQty,
                         QuantityOut = 0,
 
                         UnitCost = line.UnitCost,
-                        TotalCost = line.ReceivedQty * line.UnitCost,
+                        TotalCost = totalCost,
 
                         TransactionDate = receipt.ReceiptDate
                     };
@@ -915,8 +953,8 @@ namespace InventorySystem.Infrastructure.Seed
                 }
             }
 
-            context.InventoryCostLayers.AddRange(costLayers);
-            context.InventoryLedgers.AddRange(ledgers);
+            await context.InventoryCostLayers.AddRangeAsync(costLayers);
+            await context.InventoryLedgers.AddRangeAsync(ledgers);
 
             await context.SaveChangesAsync();
         }

@@ -22,6 +22,6 @@ namespace InventorySystem.Domain.Entities.Inventory
 
         public decimal TotalCost { get; set; } 
 
-        public DateTime TransactionDate { get; set; }
+        public DateTime TransactionDate { get; set; } = DateTime.UtcNow;
     }
 }

@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace InventorySystem.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260310162824_addRowNumber")]
-    partial class addRowNumber
+    [Migration("20260311081711_updateModelLayer")]
+    partial class updateModelLayer
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -157,6 +157,9 @@ namespace InventorySystem.Infrastructure.Migrations
                     b.Property<int>("ProductId")
                         .HasColumnType("int");
 
+                    b.Property<int>("RowNumber")
+                        .HasColumnType("int");
+
                     b.Property<decimal>("Quantity")
                         .HasPrecision(18, 4)
                         .HasColumnType("decimal(18,4)");
@@ -165,7 +168,7 @@ namespace InventorySystem.Infrastructure.Migrations
                         .HasPrecision(18, 4)
                         .HasColumnType("decimal(18,4)");
 
-                    b.HasKey("DeliveryId", "ProductId");
+                    b.HasKey("DeliveryId", "ProductId", "RowNumber");
 
                     b.HasIndex("ProductId");
 
@@ -652,6 +655,9 @@ namespace InventorySystem.Infrastructure.Migrations
                     b.Property<decimal>("ReservedQty")
                         .HasPrecision(18, 4)
                         .HasColumnType("decimal(18,4)");
+
+                    b.Property<int>("RowNumber")
+                        .HasColumnType("int");
 
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()

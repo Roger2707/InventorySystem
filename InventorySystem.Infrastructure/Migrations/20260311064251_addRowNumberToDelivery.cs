@@ -5,43 +5,43 @@
 namespace InventorySystem.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class addRowNumber : Migration
+    public partial class addRowNumberToDelivery : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropPrimaryKey(
-                name: "PK_SalesOrderLines",
-                table: "SalesOrderLines");
+                name: "PK_DeliveryLines",
+                table: "DeliveryLines");
 
             migrationBuilder.AddColumn<int>(
                 name: "RowNumber",
-                table: "SalesOrderLines",
+                table: "DeliveryLines",
                 type: "int",
                 nullable: false,
                 defaultValue: 0);
 
             migrationBuilder.AddPrimaryKey(
-                name: "PK_SalesOrderLines",
-                table: "SalesOrderLines",
-                columns: new[] { "SalesOrderId", "ProductId", "RowNumber" });
+                name: "PK_DeliveryLines",
+                table: "DeliveryLines",
+                columns: new[] { "DeliveryId", "ProductId", "RowNumber" });
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropPrimaryKey(
-                name: "PK_SalesOrderLines",
-                table: "SalesOrderLines");
+                name: "PK_DeliveryLines",
+                table: "DeliveryLines");
 
             migrationBuilder.DropColumn(
                 name: "RowNumber",
-                table: "SalesOrderLines");
+                table: "DeliveryLines");
 
             migrationBuilder.AddPrimaryKey(
-                name: "PK_SalesOrderLines",
-                table: "SalesOrderLines",
-                columns: new[] { "SalesOrderId", "ProductId" });
+                name: "PK_DeliveryLines",
+                table: "DeliveryLines",
+                columns: new[] { "DeliveryId", "ProductId" });
         }
     }
 }

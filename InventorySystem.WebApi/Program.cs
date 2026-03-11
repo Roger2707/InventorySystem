@@ -88,6 +88,7 @@ builder.Services.AddScoped<IInventoryLedgerService, InventoryLedgerService>();
 builder.Services.AddScoped<IInventoryCostLayerService, InventoryCostLayerService>();
 builder.Services.AddScoped<ISupplierProductPriceService, SupplierProductPriceService>();
 builder.Services.AddScoped<ISalesOrderService, SalesOrderService>();
+builder.Services.AddScoped<IDeliveryService, DeliveryService>();
 
 // Register Dapper query services (read-model)
 builder.Services.AddScoped<IDapperExecutor, DapperExecutor>();

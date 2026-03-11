@@ -2,5 +2,13 @@
 {
     public class UpdateDeliveryDto
     {
+        public List<UpdateDeliveryLineDto> LinesDto { get; set; } = new();
+    }
+
+    public class UpdateDeliveryLineDto
+    {
+        public int ProductId { get; set; }
+        public int RowNumber { get; set; }
+        public decimal Quantity { get; set; }
     }
 }

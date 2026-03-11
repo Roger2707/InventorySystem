@@ -1,7 +1,7 @@
 ﻿using InventorySystem.Application.DTOs.SalesOrder;
 using InventorySystem.Domain.Common;
 
-namespace InventorySystem.Application.Interfaces
+namespace InventorySystem.Application.Interfaces.Services
 {
     public interface ISalesOrderService
     {

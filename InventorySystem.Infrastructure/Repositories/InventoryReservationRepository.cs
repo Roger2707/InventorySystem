@@ -13,9 +13,17 @@ namespace InventorySystem.Infrastructure.Repositories
 
         public async Task<List<InventoryReservation>> GetReservationBySalesOrder(int salesOrderId, CancellationToken cancellationToken)
         {
-            var reservation = await _context.InventoryReservations
+            var reservations = await _context.InventoryReservations
                 .Where(i => i.SourceId == salesOrderId && i.SourceType == "SalesOrder")
                 .ToListAsync(cancellationToken);
+            return reservations;
+        }
+
+        public async Task<InventoryReservation> GetReservation(int salesOrderId, int productId, int rowNumber, string sourceType, CancellationToken cancellationToken)
+        {
+            var reservation = await _context.InventoryReservations
+                .Where(r => r.SourceId == salesOrderId && r.SourceType == sourceType && r.ProductId == productId && r.RowNumber == rowNumber)
+                .FirstOrDefaultAsync(cancellationToken);
             return reservation;
         }
     }

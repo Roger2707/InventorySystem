@@ -10,6 +10,5 @@
     {
         public int ProductId { get; set; }
         public decimal OrderedQty { get; set; }
-        public decimal UnitPrice { get; set; }
     }
 }

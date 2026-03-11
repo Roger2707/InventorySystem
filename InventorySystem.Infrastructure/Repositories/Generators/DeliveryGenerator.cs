@@ -1,6 +1,7 @@
 ﻿using InventorySystem.Application.Interfaces;
 using InventorySystem.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace InventorySystem.Infrastructure.Repositories.Generators
 {
@@ -22,6 +23,10 @@ namespace InventorySystem.Infrastructure.Repositories.Generators
 
             await using var command = connection.CreateCommand();
             command.CommandText = "SELECT NEXT VALUE FOR DeliverySequence";
+
+            var transaction = _context.Database.CurrentTransaction;
+            if (transaction != null)
+                command.Transaction = transaction.GetDbTransaction();
 
             var result = await command.ExecuteScalarAsync(cancellationToken);
             var nextValue = Convert.ToInt32(result);

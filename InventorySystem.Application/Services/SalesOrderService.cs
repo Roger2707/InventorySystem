@@ -1,10 +1,9 @@
-﻿using InventorySystem.Application.DTOs.PurchaseOrders;
-using InventorySystem.Application.DTOs.SalesOrder;
+﻿using InventorySystem.Application.DTOs.SalesOrder;
 using InventorySystem.Application.Interfaces;
+using InventorySystem.Application.Interfaces.Services;
 using InventorySystem.Domain.Common;
 using InventorySystem.Domain.Entities.Inventory;
 using InventorySystem.Domain.Entities.SalesOrder;
-using System.Linq;
 
 namespace InventorySystem.Application.Services
 {
@@ -40,7 +39,7 @@ namespace InventorySystem.Application.Services
 
         #endregion
 
-        #region CRUD
+        #region CRUDs
 
         public async Task<Result<SalesOrderDto>> CreateAsync(CreateSalesOrderDto createSalesOrderDto, CancellationToken cancellationToken = default)
         {
@@ -237,6 +236,7 @@ namespace InventorySystem.Application.Services
                     {
                         ProductId = line.ProductId,
                         LayerId = layer.Id,
+                        RowNumber = rowNumber,
                         ReservedQty = takeQty,
                         UnitPrice = layer.UnitCost
                     });
@@ -285,7 +285,7 @@ namespace InventorySystem.Application.Services
 
         public async Task<Result> ConfirmAsync(int id, CancellationToken cancellationToken = default)
         {
-            SalesOrder so = await _unitOfWork.SalesOrderRepository.GetByIdAsync(id, cancellationToken);
+            SalesOrder so = await _unitOfWork.SalesOrderRepository.GetWithLinesAsync(id, cancellationToken);
             if (so == null)
                 return Result.Failure($"SalesOrder with ID {id} not found.");
 
@@ -310,7 +310,7 @@ namespace InventorySystem.Application.Services
                 LinesDto = entity.Lines.Select(l => new SalesOrderLineDto
                 {
                     ProductId = l.ProductId,
-                    ProductName = l.Product.Name,
+                    ProductName = l.Product?.Name,
                     DeliveredQty = l.DeliveredQty,
                     OrderedQty = l.OrderedQty,
                     RemainingQty = l.RemainingQty,
