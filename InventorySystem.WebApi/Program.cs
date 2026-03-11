@@ -9,6 +9,7 @@ using InventorySystem.Infrastructure.Repositories.Generators;
 using InventorySystem.Infrastructure.Seed;
 using InventorySystem.Infrastructure.Services;
 using InventorySystem.WebApi.Middleware;
+using InventorySystem.WebApi.Middlewares;
 using InventorySystem.WebApi.Policies;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
@@ -160,6 +161,10 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+// Custom Middlewares
+app.UseMiddleware<ExceptionHandlingMiddleware>();
+app.UseMiddleware<RequestResponseLoggingMiddleware>();
 
 // Configure the HTTP request pipeline
 app.UseSwagger();

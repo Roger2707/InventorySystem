@@ -9,6 +9,7 @@ using InventorySystem.Domain.Entities.PurchaseOrder;
 using InventorySystem.Domain.Entities.StockTransfer;
 using InventorySystem.Domain.Entities.SalesOrder;
 using InventorySystem.Domain.Entities.Delivery;
+using InventorySystem.Domain.Entities.Invoice;
 
 namespace InventorySystem.Infrastructure.Data;
 
@@ -61,6 +62,9 @@ public class ApplicationDbContext : DbContext
     // Delivery
     public DbSet<Delivery> Deliveries { get; set; }
 
+    // Invoice
+    public DbSet<Invoice> Invoices { get; set; }
+
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
     {
     }
@@ -94,6 +98,10 @@ public class ApplicationDbContext : DbContext
         modelBuilder.HasSequence<int>("DeliverySequence")
                     .StartsAt(10)
                     .IncrementsBy(1);
+
+        modelBuilder.HasSequence<int>("InvoiceSequence")
+            .StartsAt(1)
+            .IncrementsBy(1);
 
         // Apply all entity configurations
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);

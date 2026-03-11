@@ -29,6 +29,7 @@ public class UnitOfWork : IUnitOfWork
     private ISalesOrderRepository? _salesOrderRepository;
     private IDeliveryRepository? _deliveryRepository;
     private IInventoryReservationRepository? _inventoryReservationRepository;
+    private IInvoiceRepository? _InvoiceRepository;
 
     public UnitOfWork(ApplicationDbContext context)
     {
@@ -265,6 +266,18 @@ public class UnitOfWork : IUnitOfWork
                 _inventoryReservationRepository = new InventoryReservationRepository(_context);
             }
             return _inventoryReservationRepository;
+        }
+    }
+
+    public IInvoiceRepository InvoiceRepository
+    {
+        get
+        {
+            if (_InvoiceRepository == null)
+            {
+                _InvoiceRepository = new InvoiceRepository(_context);
+            }
+            return _InvoiceRepository;
         }
     }
 
