@@ -1,7 +1,9 @@
 using InventorySystem.Application.DTOs.GoodsReceipts;
+using InventorySystem.Application.Extensions;
 using InventorySystem.Application.Interfaces;
 using InventorySystem.Application.Interfaces.Services;
 using InventorySystem.Domain.Common;
+using InventorySystem.Domain.Entities.Accounts;
 using InventorySystem.Domain.Entities.GoodsReceipt;
 using InventorySystem.Domain.Entities.Inventory;
 using InventorySystem.Domain.Enums;
@@ -174,6 +176,8 @@ public class GoodsReceiptService : IGoodsReceiptService
             goodsReceiptExist.Post();
 
             int countLineComplete = 0;
+            var journalEntryLines = new List<JournalEntryLine>();
+
             foreach (var line in goodsReceiptExist.Lines)
             {
                 var purchaseLine = purchaseOrder.Lines.FirstOrDefault(l => l.ProductId == line.ProductId);
@@ -197,6 +201,7 @@ public class GoodsReceiptService : IGoodsReceiptService
                 if (purchaseLine.ReceivedQty == pol_OrderedQty)
                     countLineComplete++;
 
+                // Import into CostLayer
                 var costLayer = new InventoryCostLayer
                 {
                     GoodsReceiptId = goodsReceiptExist.Id,
@@ -210,6 +215,7 @@ public class GoodsReceiptService : IGoodsReceiptService
 
                 await _unitOfWork.InventoryCostLayerRepository.AddAsync(costLayer);
 
+                // Create History Transaction
                 var ledger = new InventoryLedger
                 {
                     ProductId = line.ProductId,
@@ -225,6 +231,16 @@ public class GoodsReceiptService : IGoodsReceiptService
                 };
 
                 await _unitOfWork.InventoryLedgerRepository.AddAsync(ledger);
+
+                // Insert JournalEntry
+                var journalEntryLine = new JournalEntryLine
+                {
+                    AccountId = CF.GetInt(AccountCode.Inventory),
+                    Debit = line.LineTotal,
+                    Credit = 0,
+                    Description = $"GR:{id}: Product: {line.ProductId} * {line.ReceivedQty}"
+                };
+                journalEntryLines.Add(journalEntryLine);             
             }
 
             // Update PurchaseOrder_Status
@@ -233,6 +249,22 @@ public class GoodsReceiptService : IGoodsReceiptService
             else
                 purchaseOrder.Status = PurchaseOrderStatus.PartiallyReceived;
 
+            // Create JournalEntry
+            var creditLine = new JournalEntryLine
+            {
+                AccountId = 1, // Cash
+                Credit = journalEntryLines.Sum(x => x.Debit),
+            };
+            journalEntryLines.Add(creditLine);
+            var journalEntry = new JournalEntry
+            {
+                Reference = goodsReceiptExist.ReceiptNumber,
+                GoodsReceiptId = goodsReceiptExist.Id,
+                Lines = journalEntryLines
+            };
+            await _unitOfWork.JournalEntryRepository.AddAsync(journalEntry);
+
+            // SaveChange
             await _unitOfWork.SaveChangesAsync();
             await _unitOfWork.CommitTransactionAsync(cancellationToken);
 

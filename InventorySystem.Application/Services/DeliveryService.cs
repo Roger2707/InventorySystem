@@ -1,7 +1,9 @@
 ﻿using InventorySystem.Application.DTOs.Delivery;
+using InventorySystem.Application.Extensions;
 using InventorySystem.Application.Interfaces;
 using InventorySystem.Application.Interfaces.Services;
 using InventorySystem.Domain.Common;
+using InventorySystem.Domain.Entities.Accounts;
 using InventorySystem.Domain.Entities.Delivery;
 using InventorySystem.Domain.Entities.Inventory;
 using InventorySystem.Domain.Enums;
@@ -49,8 +51,8 @@ namespace InventorySystem.Application.Services
             if (existedSalesOrder == null)
                 return Result<DeliveryDto>.Failure($"SalesOrder ID: {createDeliveryDto.SalesOrderId} is not existed !");
 
-            if (existedSalesOrder.Status != SalesOrderStatus.Draft)
-                return Result<DeliveryDto>.Failure($"Only Draft Status can be created Delivery - SalesOrder ID: {createDeliveryDto.SalesOrderId} !");
+            if (existedSalesOrder.Status != SalesOrderStatus.Confirmed)
+                return Result<DeliveryDto>.Failure($"Only Confirmed Status can be created Delivery - SalesOrder ID: {createDeliveryDto.SalesOrderId} !");
 
             #endregion
 
@@ -195,7 +197,8 @@ namespace InventorySystem.Application.Services
                 var reservations = await _unitOfWork.InventoryReservationRepository.GetReservationBySalesOrder(delivery.SalesOrderId, cancellationToken);
 
                 int isSalesOrderCompleted = 0;
-                foreach(var deliveryLine in delivery.Lines)
+                var journalEntryLines = new List<JournalEntryLine>();
+                foreach (var deliveryLine in delivery.Lines)
                 {
                     var salesOrderLine = salesOrder.Lines.FirstOrDefault(sl => sl.ProductId == deliveryLine.ProductId && sl.RowNumber == deliveryLine.RowNumber);
                     if(salesOrderLine == null)
@@ -247,6 +250,27 @@ namespace InventorySystem.Application.Services
                     };
 
                     await _unitOfWork.InventoryLedgerRepository.AddAsync(ledger);
+
+                    // Insert JournalEntry (COGS)
+                    var journalEntryLineCOGS = new JournalEntryLine
+                    {
+                        AccountId = CF.GetInt(AccountCode.COGS),
+                        Debit = deliveryLine.LineTotal,
+                        Credit = 0,
+                        Description = $"GR:{id}: Product: {deliveryLine.ProductId} * {deliveryLine.DeliveredQty}"
+                    };
+
+                    // Insert JournalEntry (Inventory)
+                    var journalEntryLineInventory = new JournalEntryLine
+                    {
+                        AccountId = CF.GetInt(AccountCode.Inventory),
+                        Debit = 0,
+                        Credit = deliveryLine.LineTotal,
+                        Description = $"DE:{id}: Product: {deliveryLine.ProductId} * {deliveryLine.DeliveredQty}"
+                    };
+
+                    journalEntryLines.Add(journalEntryLineCOGS);
+                    journalEntryLines.Add(journalEntryLineInventory);
                 }
 
                 // Update SalesOrder Status depends on all qty completed
@@ -257,6 +281,14 @@ namespace InventorySystem.Application.Services
 
                 // Update Delivery Status
                 delivery.Status = DeliveryStatus.Posted;
+
+                // Insert JournalEntry
+                var journalEntry = new JournalEntry
+                {
+                    Reference = delivery.OrderNumber,
+                    DeliveryId = delivery.Id,
+                    Lines = journalEntryLines
+                };
 
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
                 await _unitOfWork.CommitTransactionAsync(cancellationToken);

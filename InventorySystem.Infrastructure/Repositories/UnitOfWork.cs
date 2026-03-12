@@ -29,7 +29,8 @@ public class UnitOfWork : IUnitOfWork
     private ISalesOrderRepository? _salesOrderRepository;
     private IDeliveryRepository? _deliveryRepository;
     private IInventoryReservationRepository? _inventoryReservationRepository;
-    private IInvoiceRepository? _InvoiceRepository;
+    private IInvoiceRepository? _invoiceRepository;
+    private IJournalEntryRepository? _journalEntryRepository;
 
     public UnitOfWork(ApplicationDbContext context)
     {
@@ -273,11 +274,23 @@ public class UnitOfWork : IUnitOfWork
     {
         get
         {
-            if (_InvoiceRepository == null)
+            if (_invoiceRepository == null)
             {
-                _InvoiceRepository = new InvoiceRepository(_context);
+                _invoiceRepository = new InvoiceRepository(_context);
             }
-            return _InvoiceRepository;
+            return _invoiceRepository;
+        }
+    }
+
+    public IJournalEntryRepository JournalEntryRepository
+    {
+        get
+        {
+            if (_journalEntryRepository == null)
+            {
+                _journalEntryRepository = new JournalEntryRepository(_context);
+            }
+            return _journalEntryRepository;
         }
     }
 

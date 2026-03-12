@@ -22,6 +22,7 @@ public interface IUnitOfWork : IDisposable
     IDeliveryRepository DeliveryRepository { get; }
     IInventoryReservationRepository InventoryReservationRepository { get; }
     IInvoiceRepository InvoiceRepository { get; }
+    IJournalEntryRepository JournalEntryRepository { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     Task BeginTransactionAsync(CancellationToken cancellationToken = default);

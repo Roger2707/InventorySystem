@@ -68,6 +68,7 @@ builder.Services.AddScoped<IPurchaseOrderGenerator, PurchaseOrderGenerator>();
 builder.Services.AddScoped<IGoodsReceiptGenerator, GoodsReceiptGenerator>();
 builder.Services.AddScoped<ISalesOrderGenerator, SalesOrderGenerator>();
 builder.Services.AddScoped<IDeliveryGenerator, DeliveryGenerator>();
+builder.Services.AddScoped<IInvoiceGenerator, InvoiceGenerator>();
 
 // Register application services
 builder.Services.AddScoped<IWarehouseService, WarehouseService>();
@@ -90,6 +91,7 @@ builder.Services.AddScoped<IInventoryCostLayerService, InventoryCostLayerService
 builder.Services.AddScoped<ISupplierProductPriceService, SupplierProductPriceService>();
 builder.Services.AddScoped<ISalesOrderService, SalesOrderService>();
 builder.Services.AddScoped<IDeliveryService, DeliveryService>();
+builder.Services.AddScoped<IInvoiceService, InvoiceService>();
 
 // Register Dapper query services (read-model)
 builder.Services.AddScoped<IDapperExecutor, DapperExecutor>();

@@ -1,5 +1,6 @@
 ﻿using InventorySystem.Application.Interfaces;
 using InventorySystem.Domain.Entities;
+using InventorySystem.Domain.Entities.Accounts;
 using InventorySystem.Domain.Entities.GoodsReceipt;
 using InventorySystem.Domain.Entities.Identity;
 using InventorySystem.Domain.Entities.Inventory;
@@ -19,6 +20,9 @@ namespace InventorySystem.Infrastructure.Seed
         {
             var context = serviceProvider.GetRequiredService<ApplicationDbContext>();
             var hasher = serviceProvider.GetRequiredService<IPasswordHasher>();
+
+            if(!await context.Accounts.AnyAsync())
+                await SeedAccoutsAsync(context);
 
             if (!await context.Users.AnyAsync())
                 await SeedUserAsyc(context, hasher);
@@ -76,6 +80,53 @@ namespace InventorySystem.Infrastructure.Seed
 
             if(await context.GoodsReceipts.AnyAsync())
                 await SeedInventoryAsync(context);
+        }
+
+        private static async Task SeedAccoutsAsync(ApplicationDbContext context)
+        {
+            var accounts = new List<Account>
+            {
+                new Account
+                {
+                    Code = "1000",
+                    Name = "Cash",
+                    Type = AccountType.Asset,
+                    IsActive = true
+                },
+                new Account
+                {
+                    Code = "1100",
+                    Name = "Accounts Receivable",
+                    Type = AccountType.Asset,
+                    IsActive = true
+                },
+                new Account
+                {
+                    Code = "1200",
+                    Name = "Inventory",
+                    Type = AccountType.Asset,
+                    IsActive = true
+                },
+                new Account
+                {
+                    Code = "4000",
+                    Name = "Revenue",
+                    Type = AccountType.Revenue,
+                    IsActive = true
+                },
+                new Account
+                {
+                    Code = "5000",
+                    Name = "Cost Of Goods Sold",
+                    Type = AccountType.Expense,
+                    IsActive = true
+                }
+            };
+
+            foreach (var acc in accounts)
+                context.Accounts.Add(acc);
+
+            await context.SaveChangesAsync();
         }
 
         private static async Task SeedUserAsyc(ApplicationDbContext context, IPasswordHasher hasher)

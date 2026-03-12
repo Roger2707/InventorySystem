@@ -10,6 +10,7 @@ using InventorySystem.Domain.Entities.StockTransfer;
 using InventorySystem.Domain.Entities.SalesOrder;
 using InventorySystem.Domain.Entities.Delivery;
 using InventorySystem.Domain.Entities.Invoice;
+using InventorySystem.Domain.Entities.Accounts;
 
 namespace InventorySystem.Infrastructure.Data;
 
@@ -64,6 +65,10 @@ public class ApplicationDbContext : DbContext
 
     // Invoice
     public DbSet<Invoice> Invoices { get; set; }
+
+    // Account
+    public DbSet<Account> Accounts { get; set; }
+    public DbSet<JournalEntry> JournalEntries { get; set; }
 
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
     {

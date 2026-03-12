@@ -1,7 +1,9 @@
 ﻿using InventorySystem.Application.DTOs.Invoices;
+using InventorySystem.Application.Extensions;
 using InventorySystem.Application.Interfaces;
 using InventorySystem.Application.Interfaces.Services;
 using InventorySystem.Domain.Common;
+using InventorySystem.Domain.Entities.Accounts;
 using InventorySystem.Domain.Entities.Invoice;
 using InventorySystem.Domain.Enums;
 
@@ -47,9 +49,45 @@ namespace InventorySystem.Application.Services
             if (delivery == null || delivery.Status != DeliveryStatus.Posted)
                 return Result<InvoiceDto>.Failure("Delivery is not valid !");
 
-            throw new NotImplementedException();
-        }
+            var invoiceLines = new List<InvoiceLine>();
+            foreach(var invoice_line_Dto in createInvoiceDto.CreateInvoiceLineDtos)
+            {
+                var delivery_line = delivery.Lines.FirstOrDefault(d => d.ProductId == invoice_line_Dto.ProductId && d.RowNumber == invoice_line_Dto.RowNumber);
+                if (delivery_line == null)
+                    return Result<InvoiceDto>.Failure($"Product : {invoice_line_Dto.ProductId} is not existed !");
 
+                if (invoice_line_Dto.InvoiceQuantity > delivery_line.RemainingInvoicedQty)
+                    continue;
+
+                var invoiceLine = new InvoiceLine()
+                {
+                    DeliveryId = delivery.Id,
+                    ProductId = invoice_line_Dto.ProductId,
+                    RowNumber = invoice_line_Dto.RowNumber,
+                    Quantity = invoice_line_Dto.InvoiceQuantity,
+                    UnitPrice = delivery_line.UnitPrice
+                };
+                invoiceLines.Add(invoiceLine);
+
+                // update invoicedQty in DelieveryLine
+                delivery_line.InvoicedQty += invoice_line_Dto.InvoiceQuantity;
+            }
+
+            var invoice = new Invoice
+            {
+                SalesOrderId = delivery.SalesOrderId,
+                DeliveryId = delivery.Id,
+                InvoiceDate = DateTime.UtcNow,
+                Lines = invoiceLines,
+                TotalAmount = invoiceLines.Sum(l => l.LineTotal)
+            };
+
+            await _unitOfWork.InvoiceRepository.AddAsync(invoice);
+            await _unitOfWork.SaveChangesAsync();
+
+            var dto = MapToDto(invoice);
+            return Result<InvoiceDto>.Success(dto);
+        }
         public async Task<Result> DeleteAsync(int id, CancellationToken cancellationToken = default)
         {
             var invoice = await _unitOfWork.InvoiceRepository.GetByIdAsync(id);
@@ -70,9 +108,60 @@ namespace InventorySystem.Application.Services
 
         #region Actions
 
-        public Task<Result> PostAsync(int id, CancellationToken cancellationToken = default)
+        public async Task<Result> PostAsync(int id, CancellationToken cancellationToken = default)
         {
-            throw new NotImplementedException();
+            try
+            {
+                await _unitOfWork.BeginTransactionAsync(cancellationToken);
+
+                var invoice = await _unitOfWork.InvoiceRepository.GetWithLinesAsync(id, cancellationToken);
+                if (invoice == null)
+                    return Result.Failure($"Invoice {id} is not existed !");
+
+                if (invoice.Status != InvoiceStatus.Draft)
+                    return Result.Failure($"Invoice {id} is not DRAFT Status !");
+
+                var invoiceNumber = await _invoiceGenerator.GenerateAsync(cancellationToken);
+                invoice.Status = InvoiceStatus.Posted;
+                invoice.InvoiceNumber = invoiceNumber;
+
+                var journalEntryLines = new List<JournalEntryLine>();
+                journalEntryLines.Add(new JournalEntryLine
+                {
+                    AccountId = (int)AccountCode.AccountsReceivable,
+                    Debit = invoice.Lines.Sum(l => l.LineTotal),
+                    Credit = 0,
+                    Description = ""
+                });
+                foreach (InvoiceLine line in invoice.Lines)
+                {
+                    journalEntryLines.Add(new JournalEntryLine
+                    {
+                        AccountId = (int)AccountCode.Revenue,
+                        Debit = 0,
+                        Credit = line.LineTotal,
+                        Description = $"INV:{id}: Product: {line.ProductId} * {line.Quantity}"
+                    });
+                }
+
+                var journalEntry = new JournalEntry
+                {
+                    Reference = invoice.InvoiceNumber,
+                    InvoiceId = invoice.Id,
+                    Lines = journalEntryLines
+                };
+                await _unitOfWork.JournalEntryRepository.AddAsync(journalEntry);
+
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+                await _unitOfWork.CommitTransactionAsync(cancellationToken);
+                return Result.Success();
+            }
+            catch (Exception ex)
+            {
+                await _unitOfWork.RollbackTransactionAsync(cancellationToken);
+                return Result.Failure(ex.Message);
+            }
+            
         }
 
         #endregion
@@ -93,7 +182,9 @@ namespace InventorySystem.Application.Services
                 {
                     Id = l.Id,
                     InvoiceId = l.InvoiceId,
-                    DeliveryLineId = l.DeliveryLineId,
+                    DeliveryId = l.DeliveryId,
+                    ProductId = l.ProductId,
+                    RowNumber = l.RowNumber,
                     Quantity = l.Quantity,
                     UnitPrice = l.UnitPrice,
                     LineTotal = l.LineTotal,
