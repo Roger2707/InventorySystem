@@ -23,10 +23,10 @@ public class JournalEntryLineConfiguration : BaseEntityConfiguration<JournalEntr
             .HasForeignKey(x => x.AccountId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasOne<JournalEntry>()
+        builder.HasOne(x => x.JournalEntry)
             .WithMany(x => x.Lines)
             .HasForeignKey(x => x.JournalEntryId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }
 

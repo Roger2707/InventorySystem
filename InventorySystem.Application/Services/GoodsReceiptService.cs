@@ -235,7 +235,7 @@ public class GoodsReceiptService : IGoodsReceiptService
                 // Insert JournalEntry
                 var journalEntryLine = new JournalEntryLine
                 {
-                    AccountId = CF.GetInt(AccountCode.Inventory),
+                    AccountId = (int)AccountCode.Inventory,
                     Debit = line.LineTotal,
                     Credit = 0,
                     Description = $"GR:{id}: Product: {line.ProductId} * {line.ReceivedQty}"
@@ -252,7 +252,7 @@ public class GoodsReceiptService : IGoodsReceiptService
             // Create JournalEntry
             var creditLine = new JournalEntryLine
             {
-                AccountId = 1, // Cash
+                AccountId = (int)AccountCode.Cash, // Cash
                 Credit = journalEntryLines.Sum(x => x.Debit),
             };
             journalEntryLines.Add(creditLine);

@@ -1,97 +1,109 @@
 ﻿using InventorySystem.Application.Interfaces;
-using InventorySystem.Domain.Entities;
+using InventorySystem.Application.Interfaces.Services;
 using InventorySystem.Domain.Entities.Accounts;
-using InventorySystem.Domain.Entities.Delivery;
 using InventorySystem.Domain.Entities.GoodsReceipt;
 using InventorySystem.Domain.Entities.Identity;
 using InventorySystem.Domain.Entities.Inventory;
-using InventorySystem.Domain.Entities.Invoice;
 using InventorySystem.Domain.Entities.Products;
 using InventorySystem.Domain.Entities.PurchaseOrder;
-using InventorySystem.Domain.Entities.SalesOrder;
 using InventorySystem.Domain.Entities.Suppliers;
+using InventorySystem.Domain.Entities;
 using InventorySystem.Domain.Enums;
 using InventorySystem.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
+using InventorySystem.Domain.Entities.Delivery;
+using InventorySystem.Domain.Entities.SalesOrder;
+using InventorySystem.Application.DTOs.Invoices;
+using InventorySystem.Application.Extensions;
 
 namespace InventorySystem.Infrastructure.Seed
 {
-    public static class SeedDataInit
+    public class SeederService
     {
-        public static async Task SeedDataAsync(IServiceProvider serviceProvider)
+        private readonly ApplicationDbContext _context;
+        private readonly IDeliveryService _deliveryService;
+        private readonly IInvoiceService _invoiceService;
+        private readonly IPasswordHasher _passwordHasher;
+
+        public SeederService(ApplicationDbContext context, IDeliveryService deliveryService, IInvoiceService invoiceService, IPasswordHasher passwordHasher)
         {
-            var context = serviceProvider.GetRequiredService<ApplicationDbContext>();
-            var hasher = serviceProvider.GetRequiredService<IPasswordHasher>();
-
-            if(!await context.Accounts.AnyAsync())
-                await SeedAccoutsAsync(context);
-
-            if (!await context.Users.AnyAsync())
-                await SeedUserAsyc(context, hasher);
-
-            if (!await context.Roles.AnyAsync())
-                await SeedRoleAsync(context);
-
-            if(await context.Users.AnyAsync() && await context.Roles.AnyAsync() && !await context.UserRoles.AnyAsync())
-                await SeedUserRoleAsync(context);
-
-            if (!await context.Regions.AnyAsync())
-                await SeedRegionAsync(context);
-
-            if (await context.Users.AnyAsync() && await context.Regions.AnyAsync() && !await context.UserRegions.AnyAsync())
-                await SeedUserRegionsAsync(context);
-
-            if (!await context.Warehouses.AnyAsync())
-                await SeedWarehouseAsync(context);
-
-            if (await context.Users.AnyAsync() && await context.Warehouses.AnyAsync() && !await context.UserWarehouses.AnyAsync())
-                await SeedUserWarehousesAsync(context);
-
-            if (!await context.Permissions.AnyAsync())
-                await SeedPermissionsAsync(context);
-
-            if (await context.Roles.AnyAsync() && await context.Permissions.AnyAsync() && !await context.RolePermissions.AnyAsync())
-                await SeedRolePermissionsAsync(context);
-
-            if (!await context.Customers.AnyAsync())
-                await SeedCustomersAsync(context);
-
-            if (!await context.Suppliers.AnyAsync())
-                await SeedSuppliersAsync(context);
-
-            if (!await context.Categories.AnyAsync())
-                await SeedCategoriesAsync(context);
-
-            if (!await context.UoMs.AnyAsync())
-                await SeedUoMsAsync(context);
-
-            if (!await context.Products.AnyAsync())
-                await SeedProductsAsync(context);
-
-            if (await context.Products.AnyAsync() && await context.UoMs.AnyAsync() && !await context.ProductUoMConversions.AnyAsync())
-                await SeedProductConversionsAsync(context);
-
-            if (!await context.SupplierProductPrices.AnyAsync())
-                await SeedSupplierProductPricesAsync(context);
-
-            if (!await context.PurchaseOrders.AnyAsync())
-                await SeedPurchaseOrdersAsync(context);
-
-            if (!await context.GoodsReceipts.AnyAsync())
-                await SeedGoodsReceiptsAsync(context);
-
-            if(!await context.SalesOrders.AnyAsync())
-                await SeedSalesOrdersAsync(context);
-
-            if (!await context.Deliveries.AnyAsync())
-                await SeedDeliveriesAsync(context);
-
-            if (!await context.Invoices.AnyAsync())
-                await SeedInvoicesAsync(context);
+            _context = context;
+            _deliveryService = deliveryService;
+            _invoiceService = invoiceService;
+            _passwordHasher = passwordHasher;
         }
 
-        private static async Task SeedAccoutsAsync(ApplicationDbContext context)
+        public async Task SeedDataAsync()
+        {
+
+            if (!await _context.Accounts.AnyAsync())
+                await SeedAccoutsAsync();
+
+            if (!await _context.Users.AnyAsync())
+                await SeedUserAsyc();
+
+            if (!await _context.Roles.AnyAsync())
+                await SeedRoleAsync();
+
+            if (await _context.Users.AnyAsync() && await _context.Roles.AnyAsync() && !await _context.UserRoles.AnyAsync())
+                await SeedUserRoleAsync();
+
+            if (!await _context.Regions.AnyAsync())
+                await SeedRegionAsync();
+
+            if (await _context.Users.AnyAsync() && await _context.Regions.AnyAsync() && !await _context.UserRegions.AnyAsync())
+                await SeedUserRegionsAsync();
+
+            if (!await _context.Warehouses.AnyAsync())
+                await SeedWarehouseAsync();
+
+            if (await _context.Users.AnyAsync() && await _context.Warehouses.AnyAsync() && !await _context.UserWarehouses.AnyAsync())
+                await SeedUserWarehousesAsync();
+
+            if (!await _context.Permissions.AnyAsync())
+                await SeedPermissionsAsync();
+
+            if (await _context.Roles.AnyAsync() && await _context.Permissions.AnyAsync() && !await _context.RolePermissions.AnyAsync())
+                await SeedRolePermissionsAsync();
+
+            if (!await _context.Customers.AnyAsync())
+                await SeedCustomersAsync();
+
+            if (!await _context.Suppliers.AnyAsync())
+                await SeedSuppliersAsync();
+
+            if (!await _context.Categories.AnyAsync())
+                await SeedCategoriesAsync();
+
+            if (!await _context.UoMs.AnyAsync())
+                await SeedUoMsAsync();
+
+            if (!await _context.Products.AnyAsync())
+                await SeedProductsAsync();
+
+            if (await _context.Products.AnyAsync() && await _context.UoMs.AnyAsync() && !await _context.ProductUoMConversions.AnyAsync())
+                await SeedProductConversionsAsync();
+
+            if (!await _context.SupplierProductPrices.AnyAsync())
+                await SeedSupplierProductPricesAsync();
+
+            if (!await _context.PurchaseOrders.AnyAsync())
+                await SeedPurchaseOrdersAsync();
+
+            if (!await _context.GoodsReceipts.AnyAsync())
+                await SeedGoodsReceiptsAsync();
+
+            if (!await _context.SalesOrders.AnyAsync())
+                await SeedSalesOrdersAsync();
+
+            if (!await _context.Deliveries.AnyAsync())
+                await SeedDeliveriesAsync();
+
+            if (!await _context.Invoices.AnyAsync())
+                await SeedInvoicesAsync();
+        }
+
+        private async Task SeedAccoutsAsync()
         {
             var accounts = new List<Account>
             {
@@ -133,12 +145,12 @@ namespace InventorySystem.Infrastructure.Seed
             };
 
             foreach (var acc in accounts)
-                context.Accounts.Add(acc);
+                _context.Accounts.Add(acc);
 
-            await context.SaveChangesAsync();
+            await _context.SaveChangesAsync();
         }
 
-        private static async Task SeedUserAsyc(ApplicationDbContext context, IPasswordHasher hasher)
+        private async Task SeedUserAsyc()
         {
             var users = new List<User>
             {
@@ -149,7 +161,7 @@ namespace InventorySystem.Infrastructure.Seed
                     Email = "rogersa@gmail.com",
                     PhoneNumber = "1234567890",
                     Address = "01 Le Duan, P.Ben Thanh, HCMC",
-                    PasswordHash = hasher.HashPassword("Rogersa@123"),
+                    PasswordHash = _passwordHasher.HashPassword("Rogersa@123"),
                 },
                 new User
                 {
@@ -158,7 +170,7 @@ namespace InventorySystem.Infrastructure.Seed
                     Email = "greatorm@gmail.com",
                     PhoneNumber = "1234567890",
                     Address = "03 PDP, P.Cau Kieu, HCMC",
-                    PasswordHash = hasher.HashPassword("Greatorm@123"),
+                    PasswordHash = _passwordHasher.HashPassword("Greatorm@123"),
                 },
                 new User
                 {
@@ -167,7 +179,7 @@ namespace InventorySystem.Infrastructure.Seed
                     Email = "baoanrm@gmail.com",
                     PhoneNumber = "1234567890",
                     Address = "05 Van Kiep, P.Phu Nhuan, HCMC",
-                    PasswordHash = hasher.HashPassword("Baoanrm@123"),
+                    PasswordHash = _passwordHasher.HashPassword("Baoanrm@123"),
                 },
                 new User
                 {
@@ -176,7 +188,7 @@ namespace InventorySystem.Infrastructure.Seed
                     Email = "gapuwm@gmail.com",
                     PhoneNumber = "1234567890",
                     Address = "07 Tan Dinh, P.Tan Dinh, HCMC",
-                    PasswordHash = hasher.HashPassword("Gapuwm@123"),
+                    PasswordHash = _passwordHasher.HashPassword("Gapuwm@123"),
                 },
                 new User
                 {
@@ -185,7 +197,7 @@ namespace InventorySystem.Infrastructure.Seed
                     Email = "nguyenwm@gmail.com",
                     PhoneNumber = "1234567890",
                     Address = "09 Phan Dang Luu, P.Thanh My Tay, HCMC",
-                    PasswordHash = hasher.HashPassword("Nguyenwm@123"),
+                    PasswordHash = _passwordHasher.HashPassword("Nguyenwm@123"),
                 },
                 new User
                 {
@@ -194,7 +206,7 @@ namespace InventorySystem.Infrastructure.Seed
                     Email = "duthwm@gmail.com",
                     PhoneNumber = "1234567890",
                     Address = "11 Quang Trung, P.Go Vap, HCMC",
-                    PasswordHash = hasher.HashPassword("Duthwm@123"),
+                    PasswordHash = _passwordHasher.HashPassword("Duthwm@123"),
                 },
                 new User
                 {
@@ -203,7 +215,7 @@ namespace InventorySystem.Infrastructure.Seed
                     Email = "quincyst@gmail.com",
                     PhoneNumber = "1234567890",
                     Address = "13 Pham Van Dong, P.Thu Duc, HCMC",
-                    PasswordHash = hasher.HashPassword("Quincyst@123"),
+                    PasswordHash = _passwordHasher.HashPassword("Quincyst@123"),
                 },
                 new User
                 {
@@ -212,7 +224,7 @@ namespace InventorySystem.Infrastructure.Seed
                     Email = "alliest@gmail.com",
                     PhoneNumber = "1234567890",
                     Address = "15 Ben Van Don, P.Pham Ngu Lao, HCMC",
-                    PasswordHash = hasher.HashPassword("Alliest@123"),
+                    PasswordHash = _passwordHasher.HashPassword("Alliest@123"),
                 },
                 new User
                 {
@@ -221,17 +233,17 @@ namespace InventorySystem.Infrastructure.Seed
                     Email = "mist@gmail.com",
                     PhoneNumber = "1234567890",
                     Address = "17 Hoang Hoa Tham, P.Bien Hoa, HCMC",
-                    PasswordHash = hasher.HashPassword("Mist@123"),
+                    PasswordHash = _passwordHasher.HashPassword("Mist@123"),
                 },
-            }; 
+            };
 
-            foreach(var user in users)
-                context.Users.Add(user);
+            foreach (var user in users)
+                _context.Users.Add(user);
 
-            await context.SaveChangesAsync();
+            await _context.SaveChangesAsync();
         }
 
-        private static async Task SeedRoleAsync(ApplicationDbContext context)
+        private async Task SeedRoleAsync()
         {
             var roles = new List<Role>
             {
@@ -262,12 +274,12 @@ namespace InventorySystem.Infrastructure.Seed
             };
 
             foreach (var role in roles)
-                context.Roles.Add(role);
+                _context.Roles.Add(role);
 
-            await context.SaveChangesAsync();
+            await _context.SaveChangesAsync();
         }
 
-        private static async Task SeedUserRoleAsync(ApplicationDbContext context)
+        private async Task SeedUserRoleAsync()
         {
             var userRoles = new List<UserRole>
             {
@@ -318,13 +330,13 @@ namespace InventorySystem.Infrastructure.Seed
                 },
             };
 
-            foreach(var ur in userRoles)
-                context.UserRoles.Add(ur);
+            foreach (var ur in userRoles)
+                _context.UserRoles.Add(ur);
 
-            await context.SaveChangesAsync();
+            await _context.SaveChangesAsync();
         }
 
-        private static async Task SeedRegionAsync(ApplicationDbContext context)
+        private async Task SeedRegionAsync()
         {
             var regions = new List<Region>
             {
@@ -334,13 +346,13 @@ namespace InventorySystem.Infrastructure.Seed
                 new Region {RegionCode = "RE - 004", RegionName = "International"},
             };
 
-            foreach (var region in regions) 
-                context.Regions.Add(region);
+            foreach (var region in regions)
+                _context.Regions.Add(region);
 
-            await context.SaveChangesAsync();
+            await _context.SaveChangesAsync();
         }
 
-        private static async Task SeedUserRegionsAsync(ApplicationDbContext context)
+        private async Task SeedUserRegionsAsync()
         {
             // just for region manager
             var userRegions = new List<UserRegion>
@@ -350,12 +362,12 @@ namespace InventorySystem.Infrastructure.Seed
             };
 
             foreach (var ur in userRegions)
-                context.UserRegions.Add(ur);
+                _context.UserRegions.Add(ur);
 
-            await context.SaveChangesAsync();
+            await _context.SaveChangesAsync();
         }
 
-        private static async Task SeedWarehouseAsync(ApplicationDbContext context)
+        private async Task SeedWarehouseAsync()
         {
             var warehouses = new List<Warehouse>
             {
@@ -389,12 +401,12 @@ namespace InventorySystem.Infrastructure.Seed
             };
 
             foreach (var warehouse in warehouses)
-                context.Warehouses.Add(warehouse);
+                _context.Warehouses.Add(warehouse);
 
-            await context.SaveChangesAsync();
+            await _context.SaveChangesAsync();
         }
 
-        private static async Task SeedUserWarehousesAsync(ApplicationDbContext context)
+        private async Task SeedUserWarehousesAsync()
         {
             // rule: RoleLevel > 2 (Regional Manager, Super Admin) are not included in this group
             var userWarehouses = new List<UserWarehouse>
@@ -409,12 +421,12 @@ namespace InventorySystem.Infrastructure.Seed
             };
 
             foreach (var uw in userWarehouses)
-                context.UserWarehouses.Add(uw);
+                _context.UserWarehouses.Add(uw);
 
-            await context.SaveChangesAsync();
+            await _context.SaveChangesAsync();
         }
 
-        private static async Task SeedPermissionsAsync(ApplicationDbContext context)
+        private async Task SeedPermissionsAsync()
         {
             var permissions = new List<Permission>
             {
@@ -531,13 +543,13 @@ namespace InventorySystem.Infrastructure.Seed
 
             };
 
-            foreach(var permission in permissions)
-                context.Permissions.Add(permission);
+            foreach (var permission in permissions)
+                _context.Permissions.Add(permission);
 
-            await context.SaveChangesAsync();
+            await _context.SaveChangesAsync();
         }
 
-        private static async Task SeedRolePermissionsAsync(ApplicationDbContext context)
+        private async Task SeedRolePermissionsAsync()
         {
             // just have permission for Role < 2
             var rolePermissions = new List<RolePermission>
@@ -551,13 +563,13 @@ namespace InventorySystem.Infrastructure.Seed
                 new RolePermission { RoleId = 4, PermissionId = 10 },
             };
 
-            foreach(var rp in rolePermissions)
-                context.RolePermissions.Add(rp);
+            foreach (var rp in rolePermissions)
+                _context.RolePermissions.Add(rp);
 
-            await context.SaveChangesAsync();
+            await _context.SaveChangesAsync();
         }
 
-        private static async Task SeedCustomersAsync(ApplicationDbContext context)
+        private async Task SeedCustomersAsync()
         {
             var customers = new List<Customer>
             {
@@ -574,12 +586,12 @@ namespace InventorySystem.Infrastructure.Seed
             };
 
             foreach (var c in customers)
-                context.Customers.Add(c);
+                _context.Customers.Add(c);
 
-            await context.SaveChangesAsync();
+            await _context.SaveChangesAsync();
         }
 
-        private static async Task SeedSuppliersAsync(ApplicationDbContext context)
+        private async Task SeedSuppliersAsync()
         {
             var suppliers = new List<Supplier>
             {
@@ -596,14 +608,14 @@ namespace InventorySystem.Infrastructure.Seed
             };
 
             foreach (var c in suppliers)
-                context.Suppliers.Add(c);
+                _context.Suppliers.Add(c);
 
-            await context.SaveChangesAsync();
+            await _context.SaveChangesAsync();
         }
 
-        private static async Task SeedCategoriesAsync(ApplicationDbContext context)
+        private async Task SeedCategoriesAsync()
         {
-            if (context.Categories.Any())
+            if (_context.Categories.Any())
                 return;
 
             // ===== ROOT LEVEL =====
@@ -611,8 +623,8 @@ namespace InventorySystem.Infrastructure.Seed
             var beverages = new Category { Name = "Beverages" };
             var kitchenSupplies = new Category { Name = "Kitchen Supplies" };
 
-            context.Categories.AddRange(ingredients, beverages, kitchenSupplies);
-            await context.SaveChangesAsync(); // Generate Ids
+            _context.Categories.AddRange(ingredients, beverages, kitchenSupplies);
+            await _context.SaveChangesAsync(); // Generate Ids
 
 
             // ===== LEVEL 2 =====
@@ -628,13 +640,13 @@ namespace InventorySystem.Infrastructure.Seed
             var spices = new Category { Name = "Spices", ParentId = kitchenSupplies.Id };
             var sauces = new Category { Name = "Sauces", ParentId = kitchenSupplies.Id };
 
-            context.Categories.AddRange(
+            _context.Categories.AddRange(
                 meat, seafood, vegetables, dairy,
                 wine, beer, softDrinks,
                 spices, sauces
             );
 
-            await context.SaveChangesAsync();
+            await _context.SaveChangesAsync();
 
             // ===== LEVEL 3 =====
             var beef = new Category { Name = "Beef", ParentId = meat.Id };
@@ -645,18 +657,18 @@ namespace InventorySystem.Infrastructure.Seed
 
             var importedBeer = new Category { Name = "Imported Beer", ParentId = beer.Id };
 
-            context.Categories.AddRange(
+            _context.Categories.AddRange(
                 beef, chicken,
                 redWine, whiteWine,
                 importedBeer
             );
 
-            await context.SaveChangesAsync();
+            await _context.SaveChangesAsync();
         }
 
-        private static async Task SeedUoMsAsync(ApplicationDbContext context)
+        private async Task SeedUoMsAsync()
         {
-            if (context.UoMs.Any()) return;
+            if (_context.UoMs.Any()) return;
 
             var uoms = new List<UoM>
             {
@@ -669,28 +681,28 @@ namespace InventorySystem.Infrastructure.Seed
                 new UoM { Name = "Piece" }
             };
 
-            context.UoMs.AddRange(uoms);
-            await context.SaveChangesAsync();
+            _context.UoMs.AddRange(uoms);
+            await _context.SaveChangesAsync();
         }
 
-        private static async Task SeedProductsAsync(ApplicationDbContext context)
+        private async Task SeedProductsAsync()
         {
-            if (context.Products.Any()) return;
+            if (_context.Products.Any()) return;
 
-            var kg = await context.UoMs.FirstAsync(x => x.Name == "Kilogram");
-            var liter = await context.UoMs.FirstAsync(x => x.Name == "Liter");
-            var bottle = await context.UoMs.FirstAsync(x => x.Name == "Bottle");
+            var kg = await _context.UoMs.FirstAsync(x => x.Name == "Kilogram");
+            var liter = await _context.UoMs.FirstAsync(x => x.Name == "Liter");
+            var bottle = await _context.UoMs.FirstAsync(x => x.Name == "Bottle");
 
-            var beef = await context.Categories.FirstAsync(x => x.Name == "Beef");
-            var chicken = await context.Categories.FirstAsync(x => x.Name == "Chicken");
-            var seafood = await context.Categories.FirstAsync(x => x.Name == "Seafood");
-            var vegetables = await context.Categories.FirstAsync(x => x.Name == "Vegetables");
-            var dairy = await context.Categories.FirstAsync(x => x.Name == "Dairy");
-            var redWine = await context.Categories.FirstAsync(x => x.Name == "Red Wine");
-            var beer = await context.Categories.FirstAsync(x => x.Name == "Imported Beer");
-            var softDrink = await context.Categories.FirstAsync(x => x.Name == "Soft Drinks");
-            var spices = await context.Categories.FirstAsync(x => x.Name == "Spices");
-            var sauces = await context.Categories.FirstAsync(x => x.Name == "Sauces");
+            var beef = await _context.Categories.FirstAsync(x => x.Name == "Beef");
+            var chicken = await _context.Categories.FirstAsync(x => x.Name == "Chicken");
+            var seafood = await _context.Categories.FirstAsync(x => x.Name == "Seafood");
+            var vegetables = await _context.Categories.FirstAsync(x => x.Name == "Vegetables");
+            var dairy = await _context.Categories.FirstAsync(x => x.Name == "Dairy");
+            var redWine = await _context.Categories.FirstAsync(x => x.Name == "Red Wine");
+            var beer = await _context.Categories.FirstAsync(x => x.Name == "Imported Beer");
+            var softDrink = await _context.Categories.FirstAsync(x => x.Name == "Soft Drinks");
+            var spices = await _context.Categories.FirstAsync(x => x.Name == "Spices");
+            var sauces = await _context.Categories.FirstAsync(x => x.Name == "Sauces");
 
             var products = new List<Product>
             {
@@ -716,26 +728,26 @@ namespace InventorySystem.Infrastructure.Seed
                 new Product { Name="Tomato Sauce", SKU="SC002", Barcode="8931234000208", CategoryId=sauces.Id, BaseUoMId=liter.Id, MinStockLevel=10, IsPerishable=true }
             };
 
-            context.Products.AddRange(products);
-            await context.SaveChangesAsync();
+            _context.Products.AddRange(products);
+            await _context.SaveChangesAsync();
         }
 
-        private static async Task SeedProductConversionsAsync(ApplicationDbContext context)
+        private async Task SeedProductConversionsAsync()
         {
-            if (context.ProductUoMConversions.Any()) return;
+            if (_context.ProductUoMConversions.Any()) return;
 
-            var caseUom = await context.UoMs.FirstAsync(x => x.Name == "Case");
-            var bottle = await context.UoMs.FirstAsync(x => x.Name == "Bottle");
-            var gram = await context.UoMs.FirstAsync(x => x.Name == "Gram");
-            var kg = await context.UoMs.FirstAsync(x => x.Name == "Kilogram");
-            var ml = await context.UoMs.FirstAsync(x => x.Name == "Milliliter");
-            var liter = await context.UoMs.FirstAsync(x => x.Name == "Liter");
+            var caseUom = await _context.UoMs.FirstAsync(x => x.Name == "Case");
+            var bottle = await _context.UoMs.FirstAsync(x => x.Name == "Bottle");
+            var gram = await _context.UoMs.FirstAsync(x => x.Name == "Gram");
+            var kg = await _context.UoMs.FirstAsync(x => x.Name == "Kilogram");
+            var ml = await _context.UoMs.FirstAsync(x => x.Name == "Milliliter");
+            var liter = await _context.UoMs.FirstAsync(x => x.Name == "Liter");
 
-            var beer = await context.Products.FirstAsync(x => x.SKU == "BR001");
-            var wine1 = await context.Products.FirstAsync(x => x.SKU == "RW001");
-            var wine2 = await context.Products.FirstAsync(x => x.SKU == "RW002");
-            var beef = await context.Products.FirstAsync(x => x.SKU == "BF001");
-            var milk = await context.Products.FirstAsync(x => x.SKU == "DY001");
+            var beer = await _context.Products.FirstAsync(x => x.SKU == "BR001");
+            var wine1 = await _context.Products.FirstAsync(x => x.SKU == "RW001");
+            var wine2 = await _context.Products.FirstAsync(x => x.SKU == "RW002");
+            var beef = await _context.Products.FirstAsync(x => x.SKU == "BF001");
+            var milk = await _context.Products.FirstAsync(x => x.SKU == "DY001");
 
             var conversions = new List<ProductUoMConversion>
             {
@@ -754,13 +766,13 @@ namespace InventorySystem.Infrastructure.Seed
                 new ProductUoMConversion { ProductId=milk.Id, FromUoMId=liter.Id, ToUoMId=ml.Id, Factor=1000 }
             };
 
-            context.ProductUoMConversions.AddRange(conversions);
-            await context.SaveChangesAsync();
+            _context.ProductUoMConversions.AddRange(conversions);
+            await _context.SaveChangesAsync();
         }
 
-        private static async Task SeedSupplierProductPricesAsync(ApplicationDbContext context)
+        private async Task SeedSupplierProductPricesAsync()
         {
-            if (context.SupplierProductPrices.Any()) return;
+            if (_context.SupplierProductPrices.Any()) return;
 
             var random = new Random();
 
@@ -792,13 +804,13 @@ namespace InventorySystem.Infrastructure.Seed
                 }
             }
 
-            context.SupplierProductPrices.AddRange(supplierProductPrices);
-            await context.SaveChangesAsync();
+            _context.SupplierProductPrices.AddRange(supplierProductPrices);
+            await _context.SaveChangesAsync();
         }
 
-        private static async Task SeedPurchaseOrdersAsync(ApplicationDbContext context)
+        private async Task SeedPurchaseOrdersAsync()
         {
-            if (context.PurchaseOrders.Any()) return;
+            if (_context.PurchaseOrders.Any()) return;
 
             var random = new Random();
             var purchaseOrders = new List<PurchaseOrder>();
@@ -853,17 +865,17 @@ namespace InventorySystem.Infrastructure.Seed
                 purchaseOrders.Add(po);
             }
 
-            context.PurchaseOrders.AddRange(purchaseOrders);
-            await context.SaveChangesAsync();
+            _context.PurchaseOrders.AddRange(purchaseOrders);
+            await _context.SaveChangesAsync();
         }
 
-        private static async Task SeedGoodsReceiptsAsync(ApplicationDbContext context)
+        private async Task SeedGoodsReceiptsAsync()
         {
-            if (context.GoodsReceipts.Any()) return;
+            if (_context.GoodsReceipts.Any()) return;
 
             var random = new Random();
 
-            var purchaseOrders = await context.PurchaseOrders
+            var purchaseOrders = await _context.PurchaseOrders
                 .Include(x => x.Lines)
                 .ToListAsync();
 
@@ -915,10 +927,10 @@ namespace InventorySystem.Infrastructure.Seed
 
                 receipt.TotalAmount = totalAmount;
 
-                context.GoodsReceipts.Add(receipt);
+                _context.GoodsReceipts.Add(receipt);
 
                 // SAVE để lấy receipt.Id
-                await context.SaveChangesAsync();
+                await _context.SaveChangesAsync();
 
                 var journalLines = new List<JournalEntryLine>();
 
@@ -936,7 +948,7 @@ namespace InventorySystem.Infrastructure.Seed
                         ReceiptDate = receipt.ReceiptDate
                     };
 
-                    context.InventoryCostLayers.Add(costLayer);
+                    _context.InventoryCostLayers.Add(costLayer);
 
                     // Ledger
                     var ledger = new InventoryLedger
@@ -953,7 +965,7 @@ namespace InventorySystem.Infrastructure.Seed
                         TransactionDate = receipt.ReceiptDate
                     };
 
-                    context.InventoryLedgers.Add(ledger);
+                    _context.InventoryLedgers.Add(ledger);
 
                     journalLines.Add(new JournalEntryLine
                     {
@@ -977,96 +989,28 @@ namespace InventorySystem.Infrastructure.Seed
                     Lines = journalLines
                 };
 
-                context.JournalEntries.Add(journalEntry);
+                _context.JournalEntries.Add(journalEntry);
 
                 if (po.Lines.All(x => x.ReceivedQty >= x.OrderedQty))
                     po.Status = PurchaseOrderStatus.Completed;
                 else
                     po.Status = PurchaseOrderStatus.PartiallyReceived;
 
-                await context.SaveChangesAsync();
+                await _context.SaveChangesAsync();
 
                 index++;
             }
         }
 
-        private static async Task SeedInventoryAsync(ApplicationDbContext context)
+        private async Task SeedSalesOrdersAsync()
         {
-            if (context.InventoryCostLayers.Any()) return;
-
-            var receipts = await context.GoodsReceipts
-                .Include(x => x.Lines)
-                .OrderBy(x => x.ReceiptDate) // FIFO order
-                .ToListAsync();
-
-            if (!receipts.Any()) return;
-
-            var costLayers = new List<InventoryCostLayer>();
-            var ledgers = new List<InventoryLedger>();
-
-            foreach (var receipt in receipts)
-            {
-                foreach (var line in receipt.Lines)
-                {
-                    var originalQty = line.ReceivedQty;
-                    var totalCost = originalQty * line.UnitCost;
-
-                    // FIFO Cost Layer
-                    var layer = new InventoryCostLayer
-                    {
-                        GoodsReceiptId = receipt.Id,
-                        ProductId = line.ProductId,
-                        WarehouseId = receipt.WarehouseId,
-
-                        OriginalQty = originalQty,
-                        RemainingQty = originalQty,
-                        ReservedQty = 0,
-
-                        UnitCost = line.UnitCost,
-                        ReceiptDate = receipt.ReceiptDate
-                    };
-
-                    costLayers.Add(layer);
-
-                    // Inventory Ledger (Stock IN)
-                    var ledger = new InventoryLedger
-                    {
-                        ProductId = line.ProductId,
-                        WarehouseId = receipt.WarehouseId,
-
-                        TransactionType = InventoryTransactionType.Receipt,
-
-                        ReferenceId = receipt.Id,
-                        ReferenceType = "GoodsReceipt",
-
-                        QuantityIn = originalQty,
-                        QuantityOut = 0,
-
-                        UnitCost = line.UnitCost,
-                        TotalCost = totalCost,
-
-                        TransactionDate = receipt.ReceiptDate
-                    };
-
-                    ledgers.Add(ledger);
-                }
-            }
-
-            await context.InventoryCostLayers.AddRangeAsync(costLayers);
-            await context.InventoryLedgers.AddRangeAsync(ledgers);
-
-            await context.SaveChangesAsync();
-        }
-
-        private static async Task SeedSalesOrdersAsync(ApplicationDbContext context)
-        {
-            if (context.SalesOrders.Any()) return;
+            if (_context.SalesOrders.Any()) return;
 
             var random = new Random();
 
-            var customers = await context.Customers.ToListAsync();
+            var customers = await _context.Customers.ToListAsync();
 
-            var layers = await context.InventoryCostLayers
+            var layers = await _context.InventoryCostLayers
                 .Where(x => x.RemainingQty > x.ReservedQty)
                 .OrderBy(x => x.ReceiptDate)
                 .ToListAsync();
@@ -1092,20 +1036,31 @@ namespace InventorySystem.Infrastructure.Seed
                 int rowNumber = 1;
                 decimal totalAmount = 0;
 
-                // đảm bảo SO đầu tiên có ProductId = 1 với 2 line khác price
-                var productIds = (i == 0)
-                    ? new List<int> { 1 }
-                    : layers.Select(x => x.ProductId)
-                            .Distinct()
-                            .OrderBy(x => random.Next())
-                            .Take(random.Next(1, 3))
-                            .ToList();
+                List<int> productIds;
+
+                // SO đầu tiên bắt buộc product 1
+                if (i == 0)
+                {
+                    productIds = new List<int> { 1 };
+                }
+                else
+                {
+                    productIds = layers
+                        .Select(x => x.ProductId)
+                        .Distinct()
+                        .OrderBy(x => random.Next())
+                        .Take(random.Next(1, 3))
+                        .ToList();
+                }
 
                 foreach (var productId in productIds)
                 {
-                    decimal orderQty = (i == 0 && productId == 1)
-                        ? 15 // đảm bảo ăn ít nhất 2 layer
-                        : random.Next(5, 20);
+                    decimal orderQty;
+
+                    if (i == 0 && productId == 1)
+                        orderQty = 15; // chắc chắn ăn nhiều layer
+                    else
+                        orderQty = random.Next(5, 20);
 
                     var fifoLayers = layers
                         .Where(x => x.ProductId == productId && x.RemainingQty > x.ReservedQty)
@@ -1149,7 +1104,7 @@ namespace InventorySystem.Infrastructure.Seed
                             UnitPrice = layer.UnitCost
                         };
 
-                        context.InventoryReservations.Add(reservation);
+                        _context.InventoryReservations.Add(reservation);
 
                         layer.ReservedQty += takeQty;
 
@@ -1159,136 +1114,135 @@ namespace InventorySystem.Infrastructure.Seed
 
                 order.TotalAmount = totalAmount;
 
-                context.SalesOrders.Add(order);
+                _context.SalesOrders.Add(order);
 
                 soIndex++;
             }
 
-            await context.SaveChangesAsync();
+            await _context.SaveChangesAsync();
         }
 
-        private static async Task SeedDeliveriesAsync(ApplicationDbContext context)
+        private async Task SeedDeliveriesAsync()
         {
-            if (context.Deliveries.Any()) return;
+            if (_context.Deliveries.Any()) return;
 
             var random = new Random();
 
-            var salesOrders = await context.SalesOrders
+            var salesOrders = await _context.SalesOrders
                 .Include(x => x.Lines)
                 .ToListAsync();
-
-            if (!salesOrders.Any()) return;
-
-            var deliveries = new List<Delivery>();
-
-            int orderIndex = 1;
 
             foreach (var so in salesOrders)
             {
                 var delivery = new Delivery
                 {
-                    OrderNumber = $"DO-{DateTime.UtcNow:yyyyMMdd}-{orderIndex:D3}",
+                    OrderNumber = $"DE-{DateTime.UtcNow:yyyyMMdd}-{so.Id:D3}",
                     SalesOrderId = so.Id,
+                    DeliveryDate = DateTime.UtcNow,
                     Status = DeliveryStatus.Draft,
-                    DeliveryDate = so.OrderDate.AddDays(random.Next(1, 5)),
                     Lines = new List<DeliveryLine>()
                 };
 
-                int rowNumber = 1;
-                decimal totalAmount = 0;
+                decimal total = 0;
 
                 foreach (var soLine in so.Lines)
                 {
-                    if (soLine.OrderedQty <= 1) continue;
+                    if (soLine.RemainingQty <= 0)
+                        continue;
 
-                    // giao khoảng 70–90%
-                    var deliveredQty = Math.Floor(
-                        soLine.OrderedQty * (decimal)(0.7 + random.NextDouble() * 0.2)
+                    // giao khoảng 60% - 90%
+                    var qty = Math.Min(
+                        soLine.RemainingQty,
+                        Math.Floor(soLine.OrderedQty * (decimal)(0.6 + random.NextDouble() * 0.3))
                     );
 
-                    if (deliveredQty <= 0)
-                        deliveredQty = soLine.OrderedQty - 1;
+                    if (qty <= 0)
+                        continue;
 
                     var line = new DeliveryLine
                     {
                         ProductId = soLine.ProductId,
-                        RowNumber = rowNumber++,
-                        DeliveredQty = deliveredQty,
+                        RowNumber = soLine.RowNumber,
+                        DeliveredQty = qty,
                         UnitPrice = soLine.UnitPrice
                     };
 
                     delivery.Lines.Add(line);
 
-                    totalAmount += line.LineTotal;
+                    total += line.LineTotal;
                 }
 
-                delivery.TotalAmount = totalAmount;
+                delivery.TotalAmount = total;
 
-                deliveries.Add(delivery);
-
-                orderIndex++;
+                _context.Deliveries.Add(delivery);
             }
 
-            context.Deliveries.AddRange(deliveries);
-            await context.SaveChangesAsync();
-        }
+            await _context.SaveChangesAsync();
 
-        private static async Task SeedInvoicesAsync(ApplicationDbContext context)
-        {
-            if (context.Invoices.Any()) return;
-
-            var random = new Random();
-
-            var deliveries = await context.Deliveries
-                .Include(x => x.Lines)
-                .ToListAsync();
-
-            if (!deliveries.Any()) return;
-
-            var invoices = new List<Invoice>();
-
-            int index = 1;
+            // POST delivery
+            var deliveries = await _context.Deliveries.ToListAsync();
 
             foreach (var delivery in deliveries)
             {
-                var invoice = new Invoice
-                {
-                    SalesOrderId = delivery.SalesOrderId,
-                    DeliveryId = delivery.Id,
-                    InvoiceNumber = $"INV-{DateTime.UtcNow:yyyyMMdd}-{index:D3}",
-                    InvoiceDate = delivery.DeliveryDate.AddDays(random.Next(1, 3)),
-                    Status = InvoiceStatus.Draft,
-                    Lines = new List<InvoiceLine>()
-                };
+                await _deliveryService.PostAsync(delivery.Id);
+            }
+        }
 
-                decimal totalAmount = 0;
+        public async Task SeedInvoicesAsync()
+        {
+            if (_context.Invoices.Any()) return;
 
-                foreach (var dLine in delivery.Lines)
+            var random = new Random();
+
+            var deliveries = await _context.Deliveries
+                .Include(d => d.Lines)
+                .Where(d => d.Status == DeliveryStatus.Posted)
+                .ToListAsync();
+
+            foreach (var delivery in deliveries)
+            {
+                var lineDtos = new List<CreateInvoiceLineDto>();
+
+                foreach (var line in delivery.Lines)
                 {
-                    var line = new InvoiceLine
+                    var remaining = line.DeliveredQty - line.InvoicedQty;
+
+                    if (remaining <= 0)
+                        continue;
+
+                    // invoice khoảng 50% - 100%
+                    var qty = Math.Min(
+                        remaining,
+                        Math.Floor(line.DeliveredQty * (decimal)(0.5 + random.NextDouble() * 0.5))
+                    );
+
+                    if (qty <= 0)
+                        continue;
+
+                    lineDtos.Add(new CreateInvoiceLineDto
                     {
-                        DeliveryId = delivery.Id,
-                        ProductId = dLine.ProductId,
-                        RowNumber = dLine.RowNumber,
-                        Quantity = dLine.DeliveredQty,
-                        UnitPrice = dLine.UnitPrice
-                    };
-
-                    invoice.Lines.Add(line);
-
-                    totalAmount += line.LineTotal;
+                        ProductId = line.ProductId,
+                        RowNumber = line.RowNumber,
+                        InvoiceQuantity = CF.GetInt(qty)
+                    });
                 }
 
-                invoice.TotalAmount = totalAmount;
+                if (!lineDtos.Any())
+                    continue;
 
-                invoices.Add(invoice);
+                var dto = new CreateInvoiceDto
+                {
+                    DeliveryId = delivery.Id,
+                    CreateInvoiceLineDtos = lineDtos
+                };
 
-                index++;
+                var result = await _invoiceService.CreateAsync(dto);
+
+                if (result.IsSuccess)
+                {
+                    await _invoiceService.PostAsync(result.Data.Id);
+                }
             }
-
-            context.Invoices.AddRange(invoices);
-
-            await context.SaveChangesAsync();
         }
     }
 }

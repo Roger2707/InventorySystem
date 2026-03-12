@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace InventorySystem.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260312090358_addAccoutingModels")]
-    partial class addAccoutingModels
+    [Migration("20260312163458_createDB")]
+    partial class createDB
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -156,9 +156,6 @@ namespace InventorySystem.Infrastructure.Migrations
                     b.Property<int>("JournalEntryId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("JournalEntryId1")
-                        .HasColumnType("int");
-
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
@@ -174,8 +171,6 @@ namespace InventorySystem.Infrastructure.Migrations
                     b.HasIndex("IsDeleted");
 
                     b.HasIndex("JournalEntryId");
-
-                    b.HasIndex("JournalEntryId1");
 
                     b.ToTable("JournalEntryLines", (string)null);
                 });
@@ -1552,15 +1547,11 @@ namespace InventorySystem.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("InventorySystem.Domain.Entities.Accounts.JournalEntry", null)
+                    b.HasOne("InventorySystem.Domain.Entities.Accounts.JournalEntry", "JournalEntry")
                         .WithMany("Lines")
                         .HasForeignKey("JournalEntryId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.HasOne("InventorySystem.Domain.Entities.Accounts.JournalEntry", "JournalEntry")
-                        .WithMany()
-                        .HasForeignKey("JournalEntryId1");
 
                     b.Navigation("Account");
 

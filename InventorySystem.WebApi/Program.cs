@@ -103,6 +103,8 @@ builder.Services.AddScoped<IProductQueries, ProductQueries>();
 builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<IJwtService, JwtService>();
 
+builder.Services.AddScoped<SeederService>();
+
 builder.Services.AddScoped<InventorySystem.Application.Interfaces.IAuthenticationService, InventorySystem.Application.Services.AuthenticationService>();
 
 #region Authentication Configuration
@@ -188,10 +190,9 @@ app.MapControllers();
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
-    var db = services.GetRequiredService<ApplicationDbContext>();
+    var seeder = services.GetRequiredService<SeederService>();
 
-    db.Database.Migrate();
-    await SeedDataInit.SeedDataAsync(services);
+    await seeder.SeedDataAsync();
 }
 
 app.Run();
