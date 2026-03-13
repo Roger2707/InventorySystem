@@ -1,4 +1,4 @@
-using InventorySystem.Application.Interfaces;
+using InventorySystem.Application.Interfaces.Repositories;
 using InventorySystem.Infrastructure.Data;
 using InventorySystem.Infrastructure.Repositories.Identity;
 using Microsoft.EntityFrameworkCore.Storage;

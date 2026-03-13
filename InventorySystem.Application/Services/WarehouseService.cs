@@ -1,6 +1,7 @@
 using InventorySystem.Application.DTOs.Warehouses;
 using InventorySystem.Application.Extensions;
 using InventorySystem.Application.Interfaces;
+using InventorySystem.Application.Interfaces.Repositories;
 using InventorySystem.Domain.Common;
 using InventorySystem.Domain.Entities;
 

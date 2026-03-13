@@ -1,6 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
-using InventorySystem.Application.Interfaces;
+using InventorySystem.Application.Interfaces.Generators;
 
 namespace InventorySystem.Infrastructure.Services;
 

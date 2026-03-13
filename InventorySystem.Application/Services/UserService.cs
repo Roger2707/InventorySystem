@@ -1,5 +1,7 @@
 using InventorySystem.Application.DTOs.Identity;
 using InventorySystem.Application.Interfaces;
+using InventorySystem.Application.Interfaces.Generators;
+using InventorySystem.Application.Interfaces.Repositories;
 using InventorySystem.Domain.Common;
 using InventorySystem.Domain.Entities;
 using InventorySystem.Domain.Entities.Identity;

@@ -1,5 +1,6 @@
 ﻿using InventorySystem.Application.DTOs.Customers;
 using InventorySystem.Application.Interfaces;
+using InventorySystem.Application.Interfaces.Repositories;
 using InventorySystem.Domain.Common;
 using InventorySystem.Domain.Entities;
 

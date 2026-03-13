@@ -1,5 +1,7 @@
 using InventorySystem.Application.Interfaces;
+using InventorySystem.Application.Interfaces.Generators;
 using InventorySystem.Application.Interfaces.Queries;
+using InventorySystem.Application.Interfaces.Repositories;
 using InventorySystem.Application.Interfaces.Services;
 using InventorySystem.Application.Services;
 using InventorySystem.Infrastructure.Data;
@@ -92,11 +94,15 @@ builder.Services.AddScoped<ISalesOrderService, SalesOrderService>();
 builder.Services.AddScoped<IDeliveryService, DeliveryService>();
 builder.Services.AddScoped<IInvoiceService, InvoiceService>();
 
+builder.Services.AddScoped<IReportService, ReportService>();
+
+
 // Register Dapper query services (read-model)
 builder.Services.AddScoped<IDapperExecutor, DapperExecutor>();
 builder.Services.AddScoped<IUserQueries, UserQueries>();
 builder.Services.AddScoped<ICategoryQueries, CategoryQueries>();
 builder.Services.AddScoped<IProductQueries, ProductQueries>();
+builder.Services.AddScoped<IReportQueries, ReportQueries>();
 
 // Register Identity services
 builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();

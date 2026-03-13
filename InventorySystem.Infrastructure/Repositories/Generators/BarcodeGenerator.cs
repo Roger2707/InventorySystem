@@ -1,4 +1,4 @@
-﻿using InventorySystem.Application.Interfaces;
+﻿using InventorySystem.Application.Interfaces.Generators;
 using InventorySystem.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 

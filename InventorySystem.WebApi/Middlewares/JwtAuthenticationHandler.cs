@@ -1,4 +1,4 @@
-using InventorySystem.Application.Interfaces;
+using InventorySystem.Application.Interfaces.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;

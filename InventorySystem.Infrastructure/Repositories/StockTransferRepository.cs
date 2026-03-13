@@ -1,4 +1,4 @@
-using InventorySystem.Application.Interfaces;
+using InventorySystem.Application.Interfaces.Repositories;
 using InventorySystem.Domain.Entities.StockTransfer;
 using InventorySystem.Infrastructure.Data;
 

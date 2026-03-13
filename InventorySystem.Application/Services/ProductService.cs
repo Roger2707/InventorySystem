@@ -1,6 +1,7 @@
 ﻿using InventorySystem.Application.DTOs.Products;
-using InventorySystem.Application.Interfaces;
+using InventorySystem.Application.Interfaces.Generators;
 using InventorySystem.Application.Interfaces.Queries;
+using InventorySystem.Application.Interfaces.Repositories;
 using InventorySystem.Application.Interfaces.Services;
 using InventorySystem.Domain.Common;
 using InventorySystem.Domain.Entities;

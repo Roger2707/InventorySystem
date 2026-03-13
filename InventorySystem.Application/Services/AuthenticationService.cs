@@ -1,5 +1,8 @@
 using InventorySystem.Application.DTOs.Identity;
 using InventorySystem.Application.Interfaces;
+using InventorySystem.Application.Interfaces.Generators;
+using InventorySystem.Application.Interfaces.Repositories;
+using InventorySystem.Application.Interfaces.Services;
 using InventorySystem.Domain.Common;
 using InventorySystem.Domain.Entities.Identity;
 namespace InventorySystem.Application.Services;

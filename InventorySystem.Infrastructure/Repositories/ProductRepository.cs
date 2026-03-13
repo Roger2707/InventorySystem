@@ -1,4 +1,4 @@
-﻿using InventorySystem.Application.Interfaces;
+﻿using InventorySystem.Application.Interfaces.Repositories;
 using InventorySystem.Domain.Entities.Products;
 using InventorySystem.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
