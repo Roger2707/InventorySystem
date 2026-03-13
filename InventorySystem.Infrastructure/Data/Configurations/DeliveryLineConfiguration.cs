@@ -18,7 +18,7 @@ public class DeliveryLineConfiguration : IEntityTypeConfiguration<DeliveryLine>
         builder.Property(x => x.InvoicedQty)
             .HasPrecision(18, 4);
 
-        builder.Property(x => x.UnitPrice)
+        builder.Property(x => x.UnitCost)
             .HasPrecision(18, 4);
 
         builder.Ignore(x => x.RemainingInvoicedQty);

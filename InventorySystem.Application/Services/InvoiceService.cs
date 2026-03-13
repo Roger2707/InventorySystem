@@ -1,5 +1,4 @@
 ﻿using InventorySystem.Application.DTOs.Invoices;
-using InventorySystem.Application.Extensions;
 using InventorySystem.Application.Interfaces;
 using InventorySystem.Application.Interfaces.Services;
 using InventorySystem.Domain.Common;
@@ -47,17 +46,27 @@ namespace InventorySystem.Application.Services
         {
             var delivery = await _unitOfWork.DeliveryRepository.GetWithLinesAsync(createInvoiceDto.DeliveryId, cancellationToken);
             if (delivery == null || delivery.Status != DeliveryStatus.Posted)
-                return Result<InvoiceDto>.Failure("Delivery is not valid !");
+                return Result<InvoiceDto>.Failure($"Delivery: {createInvoiceDto.DeliveryId} is not valid !");
+
+            var salesOrder = await _unitOfWork.SalesOrderRepository.GetWithLinesAsync(delivery.SalesOrderId, cancellationToken);
+            if(salesOrder == null)
+                return Result<InvoiceDto>.Failure($"SalesOrder: {delivery.SalesOrderId} is not valid !");
+
+            var salesOrderLines = salesOrder.Lines.ToList();
 
             var invoiceLines = new List<InvoiceLine>();
             foreach(var invoice_line_Dto in createInvoiceDto.CreateInvoiceLineDtos)
             {
                 var delivery_line = delivery.Lines.FirstOrDefault(d => d.ProductId == invoice_line_Dto.ProductId && d.RowNumber == invoice_line_Dto.RowNumber);
                 if (delivery_line == null)
-                    return Result<InvoiceDto>.Failure($"Product : {invoice_line_Dto.ProductId} is not existed !");
+                    return Result<InvoiceDto>.Failure($"Product : {invoice_line_Dto.ProductId} is not existed in Delivery !");
+
+                var salesOrderLine = salesOrderLines.FirstOrDefault(l => l.ProductId == delivery_line.ProductId && l.RowNumber == delivery_line.RowNumber);
+                if(salesOrderLine == null)
+                    return Result<InvoiceDto>.Failure($"Product : {invoice_line_Dto.ProductId} is not existed in SalesOrder !");
 
                 if (invoice_line_Dto.InvoiceQuantity > delivery_line.RemainingInvoicedQty)
-                    continue;
+                    return Result<InvoiceDto>.Failure($"Invocie {invoice_line_Dto.RowNumber} has Quantity: {invoice_line_Dto.InvoiceQuantity} > [delivery]: {delivery_line.RemainingInvoicedQty}");
 
                 var invoiceLine = new InvoiceLine()
                 {
@@ -65,13 +74,18 @@ namespace InventorySystem.Application.Services
                     ProductId = invoice_line_Dto.ProductId,
                     RowNumber = invoice_line_Dto.RowNumber,
                     Quantity = invoice_line_Dto.InvoiceQuantity,
-                    UnitPrice = delivery_line.UnitPrice
+                    // Invoice (Price) must be get from Sales
+                    UnitPrice = salesOrderLine.UnitPrice
                 };
                 invoiceLines.Add(invoiceLine);
 
                 // update invoicedQty in DelieveryLine
                 delivery_line.InvoicedQty += invoice_line_Dto.InvoiceQuantity;
             }
+
+            // If no lines => error
+            if (!invoiceLines.Any())
+                return Result<InvoiceDto>.Failure("Invoice has no valid lines");
 
             var invoice = new Invoice
             {
@@ -129,9 +143,9 @@ namespace InventorySystem.Application.Services
                 journalEntryLines.Add(new JournalEntryLine
                 {
                     AccountId = (int)AccountCode.AccountsReceivable,
-                    Debit = invoice.Lines.Sum(l => l.LineTotal),
+                    Debit = invoice.TotalAmount,
                     Credit = 0,
-                    Description = ""
+                    Description = $"INV:{invoice.InvoiceNumber}"
                 });
                 foreach (InvoiceLine line in invoice.Lines)
                 {

@@ -6,5 +6,6 @@ namespace InventorySystem.Application.Interfaces
     {
         Task<IEnumerable<SalesOrder>> GetAllWithLinesAsync(CancellationToken cancellationToken = default);
         Task<SalesOrder?> GetWithLinesAsync(int id, CancellationToken cancellationToken = default);
+        Task<List<SalesOrder>> GetConfirmedSalesOrders(CancellationToken cancellationToken = default);
     }
 }

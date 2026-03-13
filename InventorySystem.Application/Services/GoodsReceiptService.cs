@@ -141,9 +141,15 @@ public class GoodsReceiptService : IGoodsReceiptService
         return Result<GoodsReceiptDto>.Success(dto);
     }
 
-    public Task<Result> DeleteAsync(int id, CancellationToken cancellationToken = default)
+    public async Task<Result> DeleteAsync(int id, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var exist = await _unitOfWork.GoodsReceiptRepository.GetWithLinesAsync(id, cancellationToken);
+        if (exist == null)
+            return Result.Failure($"GoodsReceipt with ID {id} not found.");
+
+        exist.IsDeleted = true;
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        return Result.Success();
     }
 
     #endregion

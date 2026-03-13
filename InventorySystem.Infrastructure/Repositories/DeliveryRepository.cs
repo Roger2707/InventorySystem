@@ -1,5 +1,6 @@
 ﻿using InventorySystem.Application.Interfaces;
 using InventorySystem.Domain.Entities.Delivery;
+using InventorySystem.Domain.Enums;
 using InventorySystem.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -23,6 +24,12 @@ namespace InventorySystem.Infrastructure.Repositories
                 .Include(x => x.Lines)
                 .FirstOrDefaultAsync(d => d.Id == id, cancellationToken);
             return delivery;
+        }
+
+        public async Task<List<Delivery>> GetPostedDeliveriesWithLinesAsync(CancellationToken cancellationToken = default)
+        {
+            var deliveries = await _context.Deliveries.Include(d => d.Lines).Where(d => d.Status == DeliveryStatus.Posted).ToListAsync();
+            return deliveries;
         }
     }
 }

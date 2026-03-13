@@ -8,7 +8,7 @@
         public decimal ReservedQty { get; set; }
         public string SourceType { get; set; } = "SalesOrder";
         public int SourceId { get; set; }
-        public decimal UnitPrice { get; set; }
-        public decimal TotalAmount => UnitPrice * ReservedQty;
+        public decimal UnitCost { get; set; }
+        public decimal TotalAmount => UnitCost * ReservedQty;
     }
 }

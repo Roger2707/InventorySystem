@@ -15,6 +15,7 @@
         public UoM BaseUoM { get; set; } = default!;
 
         public decimal MinStockLevel { get; set; }
+        public decimal BasePrice { get; set; }
 
         public bool IsPerishable { get; set; } = true;
         public bool IsActive { get; set; } = true;

@@ -1,33 +1,37 @@
-﻿using InventorySystem.Application.Interfaces;
+﻿using InventorySystem.Application.DTOs.Delivery;
+using InventorySystem.Application.DTOs.GoodsReceipts;
+using InventorySystem.Application.DTOs.Invoices;
+using InventorySystem.Application.Interfaces;
 using InventorySystem.Application.Interfaces.Services;
+using InventorySystem.Domain.Entities;
 using InventorySystem.Domain.Entities.Accounts;
-using InventorySystem.Domain.Entities.GoodsReceipt;
 using InventorySystem.Domain.Entities.Identity;
-using InventorySystem.Domain.Entities.Inventory;
 using InventorySystem.Domain.Entities.Products;
 using InventorySystem.Domain.Entities.PurchaseOrder;
+using InventorySystem.Domain.Entities.SalesOrder;
 using InventorySystem.Domain.Entities.Suppliers;
-using InventorySystem.Domain.Entities;
 using InventorySystem.Domain.Enums;
 using InventorySystem.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
-using InventorySystem.Domain.Entities.Delivery;
-using InventorySystem.Domain.Entities.SalesOrder;
-using InventorySystem.Application.DTOs.Invoices;
-using InventorySystem.Application.Extensions;
 
 namespace InventorySystem.Infrastructure.Seed
 {
     public class SeederService
     {
         private readonly ApplicationDbContext _context;
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly IGoodsReceiptService _goodsReceiptService;
+        private readonly ISalesOrderService _salesOrderService;
         private readonly IDeliveryService _deliveryService;
         private readonly IInvoiceService _invoiceService;
         private readonly IPasswordHasher _passwordHasher;
 
-        public SeederService(ApplicationDbContext context, IDeliveryService deliveryService, IInvoiceService invoiceService, IPasswordHasher passwordHasher)
+        public SeederService(ApplicationDbContext context, IUnitOfWork unitOfWork, IGoodsReceiptService goodsReceiptService, ISalesOrderService salesOrderService, IDeliveryService deliveryService, IInvoiceService invoiceService, IPasswordHasher passwordHasher)
         {
             _context = context;
+            _unitOfWork = unitOfWork;
+            _goodsReceiptService = goodsReceiptService;
+            _salesOrderService = salesOrderService;
             _deliveryService = deliveryService;
             _invoiceService = invoiceService;
             _passwordHasher = passwordHasher;
@@ -35,73 +39,79 @@ namespace InventorySystem.Infrastructure.Seed
 
         public async Task SeedDataAsync()
         {
+            await SeedBaseDataAsync();
 
-            if (!await _context.Accounts.AnyAsync())
-                await SeedAccoutsAsync();
-
-            if (!await _context.Users.AnyAsync())
-                await SeedUserAsyc();
-
-            if (!await _context.Roles.AnyAsync())
-                await SeedRoleAsync();
-
-            if (await _context.Users.AnyAsync() && await _context.Roles.AnyAsync() && !await _context.UserRoles.AnyAsync())
-                await SeedUserRoleAsync();
-
-            if (!await _context.Regions.AnyAsync())
-                await SeedRegionAsync();
-
-            if (await _context.Users.AnyAsync() && await _context.Regions.AnyAsync() && !await _context.UserRegions.AnyAsync())
-                await SeedUserRegionsAsync();
-
-            if (!await _context.Warehouses.AnyAsync())
-                await SeedWarehouseAsync();
-
-            if (await _context.Users.AnyAsync() && await _context.Warehouses.AnyAsync() && !await _context.UserWarehouses.AnyAsync())
-                await SeedUserWarehousesAsync();
-
-            if (!await _context.Permissions.AnyAsync())
-                await SeedPermissionsAsync();
-
-            if (await _context.Roles.AnyAsync() && await _context.Permissions.AnyAsync() && !await _context.RolePermissions.AnyAsync())
-                await SeedRolePermissionsAsync();
-
-            if (!await _context.Customers.AnyAsync())
-                await SeedCustomersAsync();
-
-            if (!await _context.Suppliers.AnyAsync())
-                await SeedSuppliersAsync();
-
-            if (!await _context.Categories.AnyAsync())
-                await SeedCategoriesAsync();
-
-            if (!await _context.UoMs.AnyAsync())
-                await SeedUoMsAsync();
-
-            if (!await _context.Products.AnyAsync())
-                await SeedProductsAsync();
-
-            if (await _context.Products.AnyAsync() && await _context.UoMs.AnyAsync() && !await _context.ProductUoMConversions.AnyAsync())
-                await SeedProductConversionsAsync();
-
-            if (!await _context.SupplierProductPrices.AnyAsync())
-                await SeedSupplierProductPricesAsync();
-
-            if (!await _context.PurchaseOrders.AnyAsync())
-                await SeedPurchaseOrdersAsync();
-
-            if (!await _context.GoodsReceipts.AnyAsync())
-                await SeedGoodsReceiptsAsync();
-
-            if (!await _context.SalesOrders.AnyAsync())
-                await SeedSalesOrdersAsync();
-
-            if (!await _context.Deliveries.AnyAsync())
-                await SeedDeliveriesAsync();
-
-            if (!await _context.Invoices.AnyAsync())
-                await SeedInvoicesAsync();
+            await SeedFlowDataAsync();
         }
+
+        public async Task SeedBaseDataAsync()
+        {
+            try
+            {
+                await _unitOfWork.BeginTransactionAsync();
+
+                if (!await _context.Accounts.AnyAsync())
+                    await SeedAccoutsAsync();
+
+                if (!await _context.Users.AnyAsync())
+                    await SeedUserAsyc();
+
+                if (!await _context.Roles.AnyAsync())
+                    await SeedRoleAsync();
+
+                if (await _context.Users.AnyAsync() && await _context.Roles.AnyAsync() && !await _context.UserRoles.AnyAsync())
+                    await SeedUserRoleAsync();
+
+                if (!await _context.Regions.AnyAsync())
+                    await SeedRegionAsync();
+
+                if (await _context.Users.AnyAsync() && await _context.Regions.AnyAsync() && !await _context.UserRegions.AnyAsync())
+                    await SeedUserRegionsAsync();
+
+                if (!await _context.Warehouses.AnyAsync())
+                    await SeedWarehouseAsync();
+
+                if (await _context.Users.AnyAsync() && await _context.Warehouses.AnyAsync() && !await _context.UserWarehouses.AnyAsync())
+                    await SeedUserWarehousesAsync();
+
+                if (!await _context.Permissions.AnyAsync())
+                    await SeedPermissionsAsync();
+
+                if (await _context.Roles.AnyAsync() && await _context.Permissions.AnyAsync() && !await _context.RolePermissions.AnyAsync())
+                    await SeedRolePermissionsAsync();
+
+                if (!await _context.Customers.AnyAsync())
+                    await SeedCustomersAsync();
+
+                if (!await _context.Suppliers.AnyAsync())
+                    await SeedSuppliersAsync();
+
+                if (!await _context.Categories.AnyAsync())
+                    await SeedCategoriesAsync();
+
+                if (!await _context.UoMs.AnyAsync())
+                    await SeedUoMsAsync();
+
+                if (!await _context.Products.AnyAsync())
+                    await SeedProductsAsync();
+
+                if (await _context.Products.AnyAsync() && await _context.UoMs.AnyAsync() && !await _context.ProductUoMConversions.AnyAsync())
+                    await SeedProductConversionsAsync();
+
+                if (!await _context.SupplierProductPrices.AnyAsync())
+                    await SeedSupplierProductPricesAsync();
+
+                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.CommitTransactionAsync( );
+            }
+            catch(Exception ex)
+            {
+                await _unitOfWork?.RollbackTransactionAsync();
+                throw ex;
+            }
+        }
+
+        #region Base Data
 
         private async Task SeedAccoutsAsync()
         {
@@ -706,26 +716,34 @@ namespace InventorySystem.Infrastructure.Seed
 
             var products = new List<Product>
             {
-                new Product { Name="Beef Tenderloin", SKU="BF001", Barcode="8931234000017", CategoryId=beef.Id, BaseUoMId=kg.Id, MinStockLevel=5, IsPerishable=true },
-                new Product { Name="Ribeye Steak", SKU="BF002", Barcode="8931234000024", CategoryId=beef.Id, BaseUoMId=kg.Id, MinStockLevel=5, IsPerishable=true },
-                new Product { Name="Chicken Breast", SKU="CK001", Barcode="8931234000031", CategoryId=chicken.Id, BaseUoMId=kg.Id, MinStockLevel=10, IsPerishable=true },
-                new Product { Name="Whole Chicken", SKU="CK002", Barcode="8931234000048", CategoryId=chicken.Id, BaseUoMId=kg.Id, MinStockLevel=8, IsPerishable=true },
-                new Product { Name="Salmon Fillet", SKU="SF001", Barcode="8931234000055", CategoryId=seafood.Id, BaseUoMId=kg.Id, MinStockLevel=5, IsPerishable=true },
-                new Product { Name="Shrimp", SKU="SF002", Barcode="8931234000062", CategoryId=seafood.Id, BaseUoMId=kg.Id, MinStockLevel=5, IsPerishable=true },
-                new Product { Name="Broccoli", SKU="VG001", Barcode="8931234000079", CategoryId=vegetables.Id, BaseUoMId=kg.Id, MinStockLevel=5, IsPerishable=true },
-                new Product { Name="Carrot", SKU="VG002", Barcode="8931234000086", CategoryId=vegetables.Id, BaseUoMId=kg.Id, MinStockLevel=5, IsPerishable=true },
-                new Product { Name="Onion", SKU="VG003", Barcode="8931234000093", CategoryId=vegetables.Id, BaseUoMId=kg.Id, MinStockLevel=10, IsPerishable=true },
-                new Product { Name="Milk", SKU="DY001", Barcode="8931234000109", CategoryId=dairy.Id, BaseUoMId=liter.Id, MinStockLevel=20, IsPerishable=true },
-                new Product { Name="Cheddar Cheese", SKU="DY002", Barcode="8931234000116", CategoryId=dairy.Id, BaseUoMId=kg.Id, MinStockLevel=5, IsPerishable=true },
-                new Product { Name="Butter", SKU="DY003", Barcode="8931234000123", CategoryId=dairy.Id, BaseUoMId=kg.Id, MinStockLevel=3, IsPerishable=true },
-                new Product { Name="Cabernet Sauvignon", SKU="RW001", Barcode="8931234000130", CategoryId=redWine.Id, BaseUoMId=bottle.Id, MinStockLevel=24, IsPerishable=false },
-                new Product { Name="Merlot", SKU="RW002", Barcode="8931234000147", CategoryId=redWine.Id, BaseUoMId=bottle.Id, MinStockLevel=24, IsPerishable=false },
-                new Product { Name="Imported Lager Beer", SKU="BR001", Barcode="8931234000154", CategoryId=beer.Id, BaseUoMId=bottle.Id, MinStockLevel=48, IsPerishable=false },
-                new Product { Name="Coca Cola", SKU="SD001", Barcode="8931234000161", CategoryId=softDrink.Id, BaseUoMId=bottle.Id, MinStockLevel=48, IsPerishable=false },
-                new Product { Name="Black Pepper", SKU="SP001", Barcode="8931234000178", CategoryId=spices.Id, BaseUoMId=kg.Id, MinStockLevel=1, IsPerishable=false },
-                new Product { Name="Salt", SKU="SP002", Barcode="8931234000185", CategoryId=spices.Id, BaseUoMId=kg.Id, MinStockLevel=5, IsPerishable=false },
-                new Product { Name="Olive Oil", SKU="SC001", Barcode="8931234000192", CategoryId=sauces.Id, BaseUoMId=liter.Id, MinStockLevel=10, IsPerishable=false },
-                new Product { Name="Tomato Sauce", SKU="SC002", Barcode="8931234000208", CategoryId=sauces.Id, BaseUoMId=liter.Id, MinStockLevel=10, IsPerishable=true }
+                new Product { Name="Beef Tenderloin", SKU="BF001", Barcode="8931234000017", CategoryId=beef.Id, BaseUoMId=kg.Id, BasePrice=650000, MinStockLevel=5, IsPerishable=true },
+                new Product { Name="Ribeye Steak", SKU="BF002", Barcode="8931234000024", CategoryId=beef.Id, BaseUoMId=kg.Id, BasePrice=550000, MinStockLevel=5, IsPerishable=true },
+
+                new Product { Name="Chicken Breast", SKU="CK001", Barcode="8931234000031", CategoryId=chicken.Id, BaseUoMId=kg.Id, BasePrice=140000, MinStockLevel=10, IsPerishable=true },
+                new Product { Name="Whole Chicken", SKU="CK002", Barcode="8931234000048", CategoryId=chicken.Id, BaseUoMId=kg.Id, BasePrice=110000, MinStockLevel=8, IsPerishable=true },
+
+                new Product { Name="Salmon Fillet", SKU="SF001", Barcode="8931234000055", CategoryId=seafood.Id, BaseUoMId=kg.Id, BasePrice=520000, MinStockLevel=5, IsPerishable=true },
+                new Product { Name="Shrimp", SKU="SF002", Barcode="8931234000062", CategoryId=seafood.Id, BaseUoMId=kg.Id, BasePrice=420000, MinStockLevel=5, IsPerishable=true },
+
+                new Product { Name="Broccoli", SKU="VG001", Barcode="8931234000079", CategoryId=vegetables.Id, BaseUoMId=kg.Id, BasePrice=65000, MinStockLevel=5, IsPerishable=true },
+                new Product { Name="Carrot", SKU="VG002", Barcode="8931234000086", CategoryId=vegetables.Id, BaseUoMId=kg.Id, BasePrice=30000, MinStockLevel=5, IsPerishable=true },
+                new Product { Name="Onion", SKU="VG003", Barcode="8931234000093", CategoryId=vegetables.Id, BaseUoMId=kg.Id, BasePrice=28000, MinStockLevel=10, IsPerishable=true },
+
+                new Product { Name="Milk", SKU="DY001", Barcode="8931234000109", CategoryId=dairy.Id, BaseUoMId=liter.Id, BasePrice=35000, MinStockLevel=20, IsPerishable=true },
+                new Product { Name="Cheddar Cheese", SKU="DY002", Barcode="8931234000116", CategoryId=dairy.Id, BaseUoMId=kg.Id, BasePrice=380000, MinStockLevel=5, IsPerishable=true },
+                new Product { Name="Butter", SKU="DY003", Barcode="8931234000123", CategoryId=dairy.Id, BaseUoMId=kg.Id, BasePrice=260000, MinStockLevel=3, IsPerishable=true },
+
+                new Product { Name="Cabernet Sauvignon", SKU="RW001", Barcode="8931234000130", CategoryId=redWine.Id, BaseUoMId=bottle.Id, BasePrice=450000, MinStockLevel=24, IsPerishable=false },
+                new Product { Name="Merlot", SKU="RW002", Barcode="8931234000147", CategoryId=redWine.Id, BaseUoMId=bottle.Id, BasePrice=380000, MinStockLevel=24, IsPerishable=false },
+
+                new Product { Name="Imported Lager Beer", SKU="BR001", Barcode="8931234000154", CategoryId=beer.Id, BaseUoMId=bottle.Id, BasePrice=28000, MinStockLevel=48, IsPerishable=false },
+                new Product { Name="Coca Cola", SKU="SD001", Barcode="8931234000161", CategoryId=softDrink.Id, BaseUoMId=bottle.Id, BasePrice=15000, MinStockLevel=48, IsPerishable=false },
+
+                new Product { Name="Black Pepper", SKU="SP001", Barcode="8931234000178", CategoryId=spices.Id, BaseUoMId=kg.Id, BasePrice=320000, MinStockLevel=1, IsPerishable=false },
+                new Product { Name="Salt", SKU="SP002", Barcode="8931234000185", CategoryId=spices.Id, BaseUoMId=kg.Id, BasePrice=12000, MinStockLevel=5, IsPerishable=false },
+
+                new Product { Name="Olive Oil", SKU="SC001", Barcode="8931234000192", CategoryId=sauces.Id, BaseUoMId=liter.Id, BasePrice=260000, MinStockLevel=10, IsPerishable=false },
+                new Product { Name="Tomato Sauce", SKU="SC002", Barcode="8931234000208", CategoryId=sauces.Id, BaseUoMId=liter.Id, BasePrice=75000, MinStockLevel=10, IsPerishable=true }
             };
 
             _context.Products.AddRange(products);
@@ -808,6 +826,40 @@ namespace InventorySystem.Infrastructure.Seed
             await _context.SaveChangesAsync();
         }
 
+        #endregion
+
+        public async Task SeedFlowDataAsync()
+        {
+            try
+            {
+                await _unitOfWork.BeginTransactionAsync();
+
+                if (!await _context.PurchaseOrders.AnyAsync())
+                    await SeedPurchaseOrdersAsync();
+
+                if (!await _context.GoodsReceipts.AnyAsync())
+                    await SeedGoodsReceiptsAsync();
+
+                if (!await _context.SalesOrders.AnyAsync())
+                    await SeedSalesOrdersAsync();
+
+                //if (!await _context.Deliveries.AnyAsync())
+                //    await SeedDeliveriesAsync();
+
+                //if (!await _context.Invoices.AnyAsync())
+                //    await SeedInvoicesAsync();
+
+                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.CommitTransactionAsync();
+
+            }
+            catch ( Exception ex )
+            {
+                await _unitOfWork.RollbackTransactionAsync();
+                throw ex;
+            }
+        }
+
         private async Task SeedPurchaseOrdersAsync()
         {
             if (_context.PurchaseOrders.Any()) return;
@@ -871,377 +923,217 @@ namespace InventorySystem.Infrastructure.Seed
 
         private async Task SeedGoodsReceiptsAsync()
         {
-            if (_context.GoodsReceipts.Any()) return;
-
-            var random = new Random();
-
             var purchaseOrders = await _context.PurchaseOrders
                 .Include(x => x.Lines)
+                .Where(x => x.Status == PurchaseOrderStatus.Approved)
                 .ToListAsync();
 
-            if (!purchaseOrders.Any()) return;
+            if (!purchaseOrders.Any())
+                return;
 
-            int index = 1;
-
-            foreach (var po in purchaseOrders.Take(5))
+            var random = new Random();
+            foreach (var po in purchaseOrders)
             {
-                var receiptDate = po.OrderDate.AddDays(random.Next(2, 6));
+                var linesDto = new List<CreateGoodsReceiptLineDto>();
 
-                var receipt = new GoodsReceipt
-                {
-                    ReceiptNumber = $"GR-{DateTime.UtcNow:yyyyMMdd}-{index:D3}",
-                    PurchaseOrderId = po.Id,
-                    WarehouseId = random.Next(1, 3),
-                    Status = ReceiptStatus.Posted,
-                    ReceiptDate = receiptDate,
-                    Lines = new List<GoodsReceiptLine>()
-                };
-
-                decimal totalAmount = 0;
-
-                foreach (var poLine in po.Lines)
+                foreach (var line in po.Lines)
                 {
                     var receivedQty = Math.Floor(
-                        poLine.OrderedQty * (decimal)(0.7 + random.NextDouble() * 0.2));
+                        line.OrderedQty * (decimal)(0.6 + random.NextDouble() * 0.3));
 
                     if (receivedQty <= 0)
                         continue;
 
-                    var unitCost = poLine.UnitPrice *
-                        (decimal)(0.9 + random.NextDouble() * 0.2);
-
-                    var line = new GoodsReceiptLine
+                    linesDto.Add(new CreateGoodsReceiptLineDto
                     {
                         PurchaseOrderId = po.Id,
-                        ProductId = poLine.ProductId,
-                        ReceivedQty = receivedQty,
-                        UnitCost = Math.Round(unitCost, 2)
-                    };
-
-                    receipt.Lines.Add(line);
-
-                    totalAmount += line.LineTotal;
-
-                    poLine.ReceivedQty += receivedQty;
-                }
-
-                receipt.TotalAmount = totalAmount;
-
-                _context.GoodsReceipts.Add(receipt);
-
-                // SAVE để lấy receipt.Id
-                await _context.SaveChangesAsync();
-
-                var journalLines = new List<JournalEntryLine>();
-
-                foreach (var line in receipt.Lines)
-                {
-                    // Cost Layer
-                    var costLayer = new InventoryCostLayer
-                    {
-                        GoodsReceiptId = receipt.Id,
                         ProductId = line.ProductId,
-                        WarehouseId = receipt.WarehouseId,
-                        OriginalQty = line.ReceivedQty,
-                        RemainingQty = line.ReceivedQty,
-                        UnitCost = line.UnitCost,
-                        ReceiptDate = receipt.ReceiptDate
-                    };
-
-                    _context.InventoryCostLayers.Add(costLayer);
-
-                    // Ledger
-                    var ledger = new InventoryLedger
-                    {
-                        ProductId = line.ProductId,
-                        WarehouseId = receipt.WarehouseId,
-                        TransactionType = InventoryTransactionType.Receipt,
-                        ReferenceId = receipt.Id,
-                        ReferenceType = "GoodsReceipt",
-                        QuantityIn = line.ReceivedQty,
-                        QuantityOut = 0,
-                        UnitCost = line.UnitCost,
-                        TotalCost = line.LineTotal,
-                        TransactionDate = receipt.ReceiptDate
-                    };
-
-                    _context.InventoryLedgers.Add(ledger);
-
-                    journalLines.Add(new JournalEntryLine
-                    {
-                        AccountId = (int)AccountCode.Inventory,
-                        Debit = line.LineTotal,
-                        Credit = 0
+                        ReceivedQty = receivedQty
                     });
                 }
 
-                journalLines.Add(new JournalEntryLine
-                {
-                    AccountId = (int)AccountCode.Cash,
-                    Debit = 0,
-                    Credit = totalAmount
-                });
+                if (!linesDto.Any())
+                    continue;
 
-                var journalEntry = new JournalEntry
+                var createDto = new CreateGoodsReceiptDto
                 {
-                    Reference = receipt.ReceiptNumber,
-                    GoodsReceiptId = receipt.Id,
-                    Lines = journalLines
+                    PurchaseOrderId = po.Id,
+                    WarehouseId = random.Next(1, 3),
+                    LinesDto = linesDto
                 };
 
-                _context.JournalEntries.Add(journalEntry);
+                var result = await _goodsReceiptService.CreateAsync(createDto);
 
-                if (po.Lines.All(x => x.ReceivedQty >= x.OrderedQty))
-                    po.Status = PurchaseOrderStatus.Completed;
-                else
-                    po.Status = PurchaseOrderStatus.PartiallyReceived;
+                if (!result.IsSuccess)
+                    continue;
 
-                await _context.SaveChangesAsync();
-
-                index++;
+                await _goodsReceiptService.PostAsync(result.Data.Id);
             }
         }
 
         private async Task SeedSalesOrdersAsync()
         {
-            if (_context.SalesOrders.Any()) return;
+            if (_context.SalesOrders.Any())
+                return;
 
             var random = new Random();
+            var salesOrders = new List<SalesOrder>();
 
-            var customers = await _context.Customers.ToListAsync();
-
+            // lấy cost layers của product 1 (FIFO)
             var layers = await _context.InventoryCostLayers
-                .Where(x => x.RemainingQty > x.ReservedQty)
+                .Where(x => x.ProductId == 1)
                 .OrderBy(x => x.ReceiptDate)
                 .ToListAsync();
 
-            if (!customers.Any() || !layers.Any())
+            if (layers.Count < 2)
                 return;
 
-            int soIndex = 1;
+            var firstLayer = layers[0];
+            var secondLayer = layers[1];
 
-            for (int i = 0; i < 5; i++)
+            var available1 = firstLayer.RemainingQty - firstLayer.ReservedQty;
+            var available2 = secondLayer.RemainingQty - secondLayer.ReservedQty;
+
+            // đảm bảo orderQty vượt layer1 nhưng không vượt layer1 + layer2
+            var orderedQty = Math.Min(available1 + available2 - 1, available1 + 5);
+
+            var so = new SalesOrder
             {
-                var customer = customers[random.Next(customers.Count)];
-
-                var order = new SalesOrder
+                OrderNumber = $"SO-{DateTime.UtcNow:yyyyMMdd}-001",
+                CustomerId = random.Next(1, 6),
+                OrderDate = DateTime.UtcNow,
+                Status = SalesOrderStatus.Draft,
+                Lines = new List<SalesOrderLine>
                 {
-                    OrderNumber = $"SO-{DateTime.UtcNow:yyyyMMdd}-{soIndex:D3}",
-                    CustomerId = customer.Id,
-                    OrderDate = DateTime.UtcNow,
-                    Status = SalesOrderStatus.Draft,
-                    Lines = new List<SalesOrderLine>()
-                };
-
-                int rowNumber = 1;
-                decimal totalAmount = 0;
-
-                List<int> productIds;
-
-                // SO đầu tiên bắt buộc product 1
-                if (i == 0)
-                {
-                    productIds = new List<int> { 1 };
-                }
-                else
-                {
-                    productIds = layers
-                        .Select(x => x.ProductId)
-                        .Distinct()
-                        .OrderBy(x => random.Next())
-                        .Take(random.Next(1, 3))
-                        .ToList();
-                }
-
-                foreach (var productId in productIds)
-                {
-                    decimal orderQty;
-
-                    if (i == 0 && productId == 1)
-                        orderQty = 15; // chắc chắn ăn nhiều layer
-                    else
-                        orderQty = random.Next(5, 20);
-
-                    var fifoLayers = layers
-                        .Where(x => x.ProductId == productId && x.RemainingQty > x.ReservedQty)
-                        .OrderBy(x => x.ReceiptDate)
-                        .ToList();
-
-                    decimal remaining = orderQty;
-
-                    foreach (var layer in fifoLayers)
+                    new SalesOrderLine
                     {
-                        if (remaining <= 0)
-                            break;
-
-                        var available = layer.RemainingQty - layer.ReservedQty;
-
-                        if (available <= 0)
-                            continue;
-
-                        var takeQty = Math.Min(available, remaining);
-
-                        remaining -= takeQty;
-
-                        var line = new SalesOrderLine
-                        {
-                            ProductId = productId,
-                            RowNumber = rowNumber,
-                            OrderedQty = takeQty,
-                            UnitPrice = layer.UnitCost
-                        };
-
-                        order.Lines.Add(line);
-
-                        totalAmount += line.LineTotal;
-
-                        var reservation = new InventoryReservation
-                        {
-                            ProductId = productId,
-                            LayerId = layer.Id,
-                            RowNumber = rowNumber,
-                            ReservedQty = takeQty,
-                            UnitPrice = layer.UnitCost
-                        };
-
-                        _context.InventoryReservations.Add(reservation);
-
-                        layer.ReservedQty += takeQty;
-
-                        rowNumber++;
+                        ProductId = 1,
+                        RowNumber = 1,
+                        OrderedQty = orderedQty,
+                        UnitPrice = 0
                     }
                 }
+            };
+            salesOrders.Add(so);
 
-                order.TotalAmount = totalAmount;
-
-                _context.SalesOrders.Add(order);
-
-                soIndex++;
-            }
-
-            await _context.SaveChangesAsync();
-        }
-
-        private async Task SeedDeliveriesAsync()
-        {
-            if (_context.Deliveries.Any()) return;
-
-            var random = new Random();
-
-            var salesOrders = await _context.SalesOrders
-                .Include(x => x.Lines)
-                .ToListAsync();
-
-            foreach (var so in salesOrders)
+            // seed thêm vài SO random
+            for (int i = 2; i <= 5; i++)
             {
-                var delivery = new Delivery
-                {
-                    OrderNumber = $"DE-{DateTime.UtcNow:yyyyMMdd}-{so.Id:D3}",
-                    SalesOrderId = so.Id,
-                    DeliveryDate = DateTime.UtcNow,
-                    Status = DeliveryStatus.Draft,
-                    Lines = new List<DeliveryLine>()
-                };
+                var productId = random.Next(1, 10);
 
-                decimal total = 0;
+                var productLayers = await _context.InventoryCostLayers
+                    .Where(x => x.ProductId == productId)
+                    .ToListAsync();
 
-                foreach (var soLine in so.Lines)
-                {
-                    if (soLine.RemainingQty <= 0)
-                        continue;
-
-                    // giao khoảng 60% - 90%
-                    var qty = Math.Min(
-                        soLine.RemainingQty,
-                        Math.Floor(soLine.OrderedQty * (decimal)(0.6 + random.NextDouble() * 0.3))
-                    );
-
-                    if (qty <= 0)
-                        continue;
-
-                    var line = new DeliveryLine
-                    {
-                        ProductId = soLine.ProductId,
-                        RowNumber = soLine.RowNumber,
-                        DeliveredQty = qty,
-                        UnitPrice = soLine.UnitPrice
-                    };
-
-                    delivery.Lines.Add(line);
-
-                    total += line.LineTotal;
-                }
-
-                delivery.TotalAmount = total;
-
-                _context.Deliveries.Add(delivery);
-            }
-
-            await _context.SaveChangesAsync();
-
-            // POST delivery
-            var deliveries = await _context.Deliveries.ToListAsync();
-
-            foreach (var delivery in deliveries)
-            {
-                await _deliveryService.PostAsync(delivery.Id);
-            }
-        }
-
-        public async Task SeedInvoicesAsync()
-        {
-            if (_context.Invoices.Any()) return;
-
-            var random = new Random();
-
-            var deliveries = await _context.Deliveries
-                .Include(d => d.Lines)
-                .Where(d => d.Status == DeliveryStatus.Posted)
-                .ToListAsync();
-
-            foreach (var delivery in deliveries)
-            {
-                var lineDtos = new List<CreateInvoiceLineDto>();
-
-                foreach (var line in delivery.Lines)
-                {
-                    var remaining = line.DeliveredQty - line.InvoicedQty;
-
-                    if (remaining <= 0)
-                        continue;
-
-                    // invoice khoảng 50% - 100%
-                    var qty = Math.Min(
-                        remaining,
-                        Math.Floor(line.DeliveredQty * (decimal)(0.5 + random.NextDouble() * 0.5))
-                    );
-
-                    if (qty <= 0)
-                        continue;
-
-                    lineDtos.Add(new CreateInvoiceLineDto
-                    {
-                        ProductId = line.ProductId,
-                        RowNumber = line.RowNumber,
-                        InvoiceQuantity = CF.GetInt(qty)
-                    });
-                }
-
-                if (!lineDtos.Any())
+                if (!productLayers.Any())
                     continue;
 
-                var dto = new CreateInvoiceDto
+                var totalAvailable = productLayers.Sum(x => x.RemainingQty - x.ReservedQty);
+
+                if (totalAvailable <= 0)
+                    continue;
+
+                var orderedQtyRandom = random.Next(1, (int)Math.Min(totalAvailable, 20));
+
+                salesOrders.Add(new SalesOrder
                 {
-                    DeliveryId = delivery.Id,
-                    CreateInvoiceLineDtos = lineDtos
+                    OrderNumber = $"SO-{DateTime.UtcNow:yyyyMMdd}-{i:D3}",
+                    CustomerId = random.Next(1, 6),
+                    OrderDate = DateTime.UtcNow,
+                    Status = SalesOrderStatus.Draft,
+                    Lines = new List<SalesOrderLine>
+                    {
+                        new SalesOrderLine
+                        {
+                            ProductId = productId,
+                            RowNumber = 1,
+                            OrderedQty = orderedQtyRandom,
+                            UnitPrice = 0
+                        }
+                    }
+                });
+            }
+            _context.SalesOrders.AddRange(salesOrders);
+
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task SeedDeliveriesAsync(CancellationToken cancellationToken = default)
+        {
+            var salesOrders = await _salesOrderService.GetConfirmedSalesOrders(cancellationToken);
+            if(!salesOrders.IsSuccess)
+                throw new Exception(salesOrders.ErrorMessage);
+
+            foreach (var so in salesOrders.Data)
+            {
+                bool isFullDelivery = so.Id % 2 == 0;
+                var createDto = new CreateDeliveryDto
+                {
+                    SalesOrderId = so.Id,
+                    LinesDto = so.Lines
+                        .Where(l => l.RemainingQty > 0)
+                        .Select(l => new CreateDeliveryLineDto
+                        {
+                            ProductId = l.ProductId,
+                            RowNumber = l.RowNumber,
+                            // Id is odd number => Completed || Partial SO
+                            DeliveredQty = isFullDelivery
+                                            ? l.RemainingQty
+                                            : Math.Max(1, l.RemainingQty / 2)
+                        }).ToList()
                 };
 
-                var result = await _invoiceService.CreateAsync(dto);
+                if (!createDto.LinesDto.Any())
+                    continue;
 
-                if (result.IsSuccess)
+                var createResult = await _deliveryService.CreateAsync(createDto, cancellationToken);
+
+                if (!createResult.IsSuccess)
+                    throw new Exception(createResult.ErrorMessage);
+
+                var deliveryId = createResult.Data.Id;
+
+                var postResult = await _deliveryService.PostAsync(deliveryId, cancellationToken);
+
+                if (!postResult.IsSuccess)
+                    throw new Exception(postResult.ErrorMessage);
+            }
+        }
+
+        public async Task SeedInvoicesAsync(CancellationToken cancellationToken = default)
+        {
+            var deliveries = await _deliveryService.GetPostedDeliveriesWithLinesAsync(cancellationToken);
+            if(!deliveries.IsSuccess)
+                throw new Exception(deliveries.ErrorMessage);
+
+            foreach (var delivery in deliveries.Data)
+            {
+                var createDto = new CreateInvoiceDto
                 {
-                    await _invoiceService.PostAsync(result.Data.Id);
-                }
+                    DeliveryId = delivery.Id,
+                    CreateInvoiceLineDtos = delivery.Lines
+                        .Where(l => l.RemainingInvoicedQty > 0)
+                        .Select(l => new CreateInvoiceLineDto
+                        {
+                            ProductId = l.ProductId,
+                            RowNumber = l.RowNumber,
+                            InvoiceQuantity = (int)l.RemainingInvoicedQty
+                        })
+                        .ToList()
+                };
+
+                if (!createDto.CreateInvoiceLineDtos.Any())
+                    continue;
+
+                var createResult = await _invoiceService.CreateAsync(createDto, cancellationToken);
+
+                if (!createResult.IsSuccess)
+                    throw new Exception(createResult.ErrorMessage);
+
+                var postResult = await _invoiceService.PostAsync(createResult.Data.Id, cancellationToken);
+
+                if (!postResult.IsSuccess)
+                    throw new Exception(postResult.ErrorMessage);
             }
         }
     }

@@ -15,7 +15,7 @@ public class InventoryReservationConfiguration : BaseEntityConfiguration<Invento
         builder.Property(x => x.ReservedQty)
             .HasPrecision(18, 4);
 
-        builder.Property(x => x.UnitPrice)
+        builder.Property(x => x.UnitCost)
             .HasPrecision(18, 4);
 
         builder.Ignore(x => x.TotalAmount);

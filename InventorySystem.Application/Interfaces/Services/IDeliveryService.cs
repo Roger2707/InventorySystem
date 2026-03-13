@@ -1,5 +1,6 @@
 ﻿using InventorySystem.Application.DTOs.Delivery;
 using InventorySystem.Domain.Common;
+using InventorySystem.Domain.Entities.Delivery;
 
 namespace InventorySystem.Application.Interfaces.Services
 {
@@ -7,6 +8,7 @@ namespace InventorySystem.Application.Interfaces.Services
     {
         Task<Result<List<DeliveryDto>>> GetAllAsync(CancellationToken cancellationToken = default);
         Task<Result<DeliveryDto>> GetWithLinesAsync(int id, CancellationToken cancellationToken = default);
+        Task<Result<List<Delivery>>> GetPostedDeliveriesWithLinesAsync(CancellationToken cancellationToken = default);
         Task<Result<DeliveryDto>> CreateAsync(CreateDeliveryDto createDeliveryDto, CancellationToken cancellationToken = default);
         Task<Result<DeliveryDto>> UpdateAsync(int id, UpdateDeliveryDto updateDeliveryDto, CancellationToken cancellationToken = default);
         Task<Result> DeleteAsync(int id, CancellationToken cancellationToken = default);

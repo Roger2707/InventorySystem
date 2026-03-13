@@ -34,6 +34,9 @@ public class ProductConfiguration : BaseEntityConfiguration<Product>
         builder.Property(x => x.MinStockLevel)
             .HasPrecision(18, 4);
 
+        builder.Property(x => x.BasePrice)
+            .HasPrecision(18, 4);
+        
         // Category
         builder.HasOne(x => x.Category)
             .WithMany()

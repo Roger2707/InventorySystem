@@ -10,7 +10,7 @@ namespace InventorySystem.Domain.Entities.Delivery
         public DeliveryStatus Status { get; set; } = DeliveryStatus.Draft;
 
         public DateTime DeliveryDate { get; set; } = DateTime.UtcNow;
-        public decimal TotalAmount { get; set; }
+        public decimal TotalAmount { get; set; } = 0;
 
         public List<DeliveryLine> Lines { get; set; } = new();
     }

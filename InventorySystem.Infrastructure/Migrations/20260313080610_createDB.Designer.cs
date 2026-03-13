@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace InventorySystem.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260312163458_createDB")]
+    [Migration("20260313080610_createDB")]
     partial class createDB
     {
         /// <inheritdoc />
@@ -294,6 +294,9 @@ namespace InventorySystem.Infrastructure.Migrations
                     b.Property<int>("RowNumber")
                         .HasColumnType("int");
 
+                    b.Property<int?>("CostLayerId")
+                        .HasColumnType("int");
+
                     b.Property<decimal>("DeliveredQty")
                         .HasPrecision(18, 4)
                         .HasColumnType("decimal(18,4)");
@@ -302,7 +305,7 @@ namespace InventorySystem.Infrastructure.Migrations
                         .HasPrecision(18, 4)
                         .HasColumnType("decimal(18,4)");
 
-                    b.Property<decimal>("UnitPrice")
+                    b.Property<decimal>("UnitCost")
                         .HasPrecision(18, 4)
                         .HasColumnType("decimal(18,4)");
 
@@ -808,7 +811,7 @@ namespace InventorySystem.Infrastructure.Migrations
                     b.Property<string>("SourceType")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<decimal>("UnitPrice")
+                    b.Property<decimal>("UnitCost")
                         .HasPrecision(18, 4)
                         .HasColumnType("decimal(18,4)");
 
@@ -972,6 +975,10 @@ namespace InventorySystem.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(13)
                         .HasColumnType("nvarchar(13)");
+
+                    b.Property<decimal>("BasePrice")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
 
                     b.Property<int>("BaseUoMId")
                         .HasColumnType("int");

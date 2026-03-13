@@ -39,6 +39,12 @@ namespace InventorySystem.Application.Services
             return Result<DeliveryDto>.Success(dto);
         }
 
+        public async Task<Result<List<Delivery>>> GetPostedDeliveriesWithLinesAsync(CancellationToken cancellationToken = default)
+        {
+            var postedDeliveries = await _unitOfWork.DeliveryRepository.GetPostedDeliveriesWithLinesAsync(cancellationToken);
+            return Result<List<Delivery>>.Success(postedDeliveries);
+        }
+
         #endregion
 
         #region CRUDs
@@ -75,7 +81,6 @@ namespace InventorySystem.Application.Services
                     ProductId = deliveryLineDto.ProductId,
                     RowNumber = deliveryLineDto.RowNumber,
                     DeliveredQty = deliveryLineDto.DeliveredQty,
-                    UnitPrice = salesOrderLine.UnitPrice,
                 };
                 deliveriesLines.Add(deliveryLine);
             }
@@ -85,7 +90,6 @@ namespace InventorySystem.Application.Services
             {
                 OrderNumber = orderNumber,
                 SalesOrderId = createDeliveryDto.SalesOrderId,
-                TotalAmount = deliveriesLines.Sum(l => l.UnitPrice * l.DeliveredQty),
                 Lines = deliveriesLines
             };
 
@@ -148,7 +152,6 @@ namespace InventorySystem.Application.Services
                         ProductId = updateDeliveryLineDto.ProductId,
                         RowNumber = updateDeliveryLineDto.RowNumber,
                         DeliveredQty = updateDeliveryLineDto.DeliveredQty,
-                        UnitPrice = salesOrderLine.UnitPrice,
                     };
                     existedDelivery.Lines.Add(newDeliveryLine);
                 }
@@ -195,6 +198,8 @@ namespace InventorySystem.Application.Services
                     return Result.Failure("Something went wrong with own SalesOrder !");
 
                 var reservations = await _unitOfWork.InventoryReservationRepository.GetReservationBySalesOrder(delivery.SalesOrderId, cancellationToken);
+                var costLayerIds = reservations.Select(x => x.LayerId).Distinct().ToList();
+                var costLayers = await _unitOfWork.InventoryCostLayerRepository.GetByIdsAsync(costLayerIds, cancellationToken);
 
                 int isSalesOrderCompleted = 0;
                 var journalEntryLines = new List<JournalEntryLine>();
@@ -228,12 +233,19 @@ namespace InventorySystem.Application.Services
 
                     // Cost Layer
                     int costLayerId = reservation.LayerId;
-                    var costLayer = await _unitOfWork.InventoryCostLayerRepository.GetByIdAsync(costLayerId, cancellationToken);
+                    var costLayer = costLayers.FirstOrDefault(l => l.Id == costLayerId && l.RemainingQty >= deliveryLine.DeliveredQty);
+                    if (costLayer == null)
+                        throw new Exception($"Can not find Layer : {costLayerId}, SO: {salesOrderLine.SalesOrderId}, Product: {deliveryLine.ProductId}, RN: {deliveryLine.RowNumber}");
+
                     if (costLayer.RemainingQty < deliveryLine.DeliveredQty)
-                        return Result.Failure("Cost layer not enough");
+                        return Result.Failure($"Cost layer: {costLayerId} not enough Stock: {costLayer.RemainingQty} < Needed: {deliveryLine.DeliveredQty}");
 
                     costLayer.RemainingQty -= deliveryLine.DeliveredQty;
                     costLayer.ReservedQty -= deliveryLine.DeliveredQty;
+
+                    // Update DeliveryLine
+                    deliveryLine.UnitCost = costLayer.UnitCost;
+                    deliveryLine.CostLayerId = costLayerId;
 
                     // Ledger (History Transactions)
                     var ledger = new InventoryLedger
@@ -242,7 +254,7 @@ namespace InventorySystem.Application.Services
                         WarehouseId = costLayer.WarehouseId,
                         TransactionType = InventoryTransactionType.Issue,
                         ReferenceId = delivery.SalesOrderId,
-                        ReferenceType = "SalesOrder",
+                        ReferenceType = "Delivery",
                         QuantityIn = 0,
                         QuantityOut = deliveryLine.DeliveredQty,
                         UnitCost = costLayer.UnitCost,
@@ -254,7 +266,7 @@ namespace InventorySystem.Application.Services
                     // Insert JournalEntry (COGS)
                     var journalEntryLineCOGS = new JournalEntryLine
                     {
-                        AccountId = CF.GetInt(AccountCode.COGS),
+                        AccountId = (int)AccountCode.COGS,
                         Debit = deliveryLine.LineTotal,
                         Credit = 0,
                         Description = $"GR:{id}: Product: {deliveryLine.ProductId} * {deliveryLine.DeliveredQty}"
@@ -263,7 +275,7 @@ namespace InventorySystem.Application.Services
                     // Insert JournalEntry (Inventory)
                     var journalEntryLineInventory = new JournalEntryLine
                     {
-                        AccountId = CF.GetInt(AccountCode.Inventory),
+                        AccountId = (int)AccountCode.Inventory,
                         Debit = 0,
                         Credit = deliveryLine.LineTotal,
                         Description = $"DE:{id}: Product: {deliveryLine.ProductId} * {deliveryLine.DeliveredQty}"
@@ -289,6 +301,7 @@ namespace InventorySystem.Application.Services
                     DeliveryId = delivery.Id,
                     Lines = journalEntryLines
                 };
+                await _unitOfWork.JournalEntryRepository.AddAsync(journalEntry);
 
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
                 await _unitOfWork.CommitTransactionAsync(cancellationToken);
@@ -334,7 +347,7 @@ namespace InventorySystem.Application.Services
                         ProductId = l.ProductId,
                         DeliveredQty = l.DeliveredQty,
                         InvoicedQty = l.InvoicedQty,
-                        UnitPrice = l.UnitPrice,     
+                        UnitCost = l.UnitCost,     
                         LineTotal = l.LineTotal,
                     })
                     .ToList()

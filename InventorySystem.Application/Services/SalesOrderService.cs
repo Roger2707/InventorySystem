@@ -3,6 +3,7 @@ using InventorySystem.Application.Interfaces;
 using InventorySystem.Application.Interfaces.Services;
 using InventorySystem.Domain.Common;
 using InventorySystem.Domain.Entities.Inventory;
+using InventorySystem.Domain.Entities.Products;
 using InventorySystem.Domain.Entities.SalesOrder;
 
 namespace InventorySystem.Application.Services
@@ -37,6 +38,12 @@ namespace InventorySystem.Application.Services
             return Result<SalesOrderDto>.Success(dto);
         }
 
+        public async Task<Result<List<SalesOrder>>> GetConfirmedSalesOrders(CancellationToken cancellationToken = default)
+        {
+            var salesOrdersConfirmed = await _unitOfWork.SalesOrderRepository.GetConfirmedSalesOrders(cancellationToken);
+            return Result<List<SalesOrder>>.Success(salesOrdersConfirmed);
+        }
+
         #endregion
 
         #region CRUDs
@@ -57,42 +64,39 @@ namespace InventorySystem.Application.Services
 
                 #endregion
 
-                IEnumerable<(int ProductId, decimal Qty)> p =
-                    createSalesOrderDto.CreateLinesDto
-                           .Select(c => (c.ProductId, c.OrderedQty))
-                           .ToList();
+                var salesOrderLines = new List<SalesOrderLine>();
+                int rowNumber = 1;
+                foreach(var create_line in createSalesOrderDto.CreateLinesDto)
+                {
+                    var product = await _unitOfWork.ProductRepository.GetByIdAsync(create_line.ProductId, cancellationToken);
+                    if(product == null)
+                        return Result<SalesOrderDto>.Failure($"Product ID {create_line.ProductId} is not Existed !");
 
-                var (salesOrderLines, reservations) = await BuildFifoReservation(p, cancellationToken);
+                    salesOrderLines.Add(
+                        new SalesOrderLine
+                        {
+                            ProductId = create_line.ProductId,
+                            RowNumber = rowNumber,
+                            UnitPrice = product.BasePrice,
+                            OrderedQty = create_line.OrderedQty,
+                        }
+                    );
 
-                #region SalesOrder
+                    rowNumber++;
+                }
 
                 string orderNumber = await _salesOrderGenerator.GenerateAsync(cancellationToken);
-
                 var salesOrder = new SalesOrder
                 {
                     OrderNumber = orderNumber,
                     CustomerId = createSalesOrderDto.CustomerId,
-                    OrderDate = DateTime.Now,
+                    OrderDate = DateTime.UtcNow,
                     Lines = salesOrderLines
                 };
 
                 await _unitOfWork.SalesOrderRepository.AddAsync(salesOrder);
-                await _unitOfWork.SaveChangesAsync(cancellationToken);
-
-                #endregion
-
-                #region Reservation Stock
-
-                foreach (var reservation in reservations)
-                {
-                    reservation.SourceId = salesOrder.Id;
-                    await _unitOfWork.InventoryReservationRepository.AddAsync(reservation);
-                }
 
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
-
-                #endregion
-
                 await _unitOfWork.CommitTransactionAsync(cancellationToken);
 
                 var dto = MapToDto(salesOrder);
@@ -103,7 +107,7 @@ namespace InventorySystem.Application.Services
                 await _unitOfWork.RollbackTransactionAsync(cancellationToken);
                 return Result<SalesOrderDto>.Failure(ex.Message);
             }
-        }    
+        }
 
         public async Task<Result<SalesOrderDto>> UpdateAsync(int id, UpdateSalesOrderDto updateSalesOrderDto, CancellationToken cancellationToken = default)
         {
@@ -127,63 +131,29 @@ namespace InventorySystem.Application.Services
 
                 #endregion
 
-                #region Delete Old Reservation records
-
-                var reserveExist = await _unitOfWork.InventoryReservationRepository.GetReservationBySalesOrder(id, cancellationToken);
-                var layerIds = reserveExist
-                                .Select(x => x.LayerId)
-                                .Distinct();
-
-                var layers = await _unitOfWork.InventoryCostLayerRepository.GetByIdsAsync(layerIds, cancellationToken);
-                var layerDict = layers.ToDictionary(x => x.Id);
-
-                foreach (var reservation in reserveExist)
-                {
-                    await _unitOfWork.InventoryReservationRepository.DeleteAsync(reservation);
-
-                    if (layerDict.TryGetValue(reservation.LayerId, out var layer))
-                    {
-                        layer.ReservedQty = Math.Max(0, layer.ReservedQty - reservation.ReservedQty);
-                    }
-                }
-
-                #endregion
-
-                #region FIFO logic
-
-                IEnumerable<(int ProductId, decimal Qty)> p =
-                    updateSalesOrderDto.UpdateLinesDto
-                           .Select(c => (c.ProductId, c.OrderedQty))
-                           .ToList();
-
-                var (salesOrderLines, reservations) = await BuildFifoReservation(p, cancellationToken);
-
-                #endregion
-
-                #region SalesOrder
 
                 salesOrderExist.CustomerId = updateSalesOrderDto.CustomerId;
                 salesOrderExist.Lines.Clear();
-                foreach (var line in salesOrderLines)
+
+                int rowNumber = 1;
+                foreach (var update_line in updateSalesOrderDto.UpdateLinesDto)
                 {
-                    salesOrderExist.Lines.Add(line);
+                    var product = await _unitOfWork.ProductRepository.GetByIdAsync(update_line.ProductId, cancellationToken);
+                    if (product == null)
+                        return Result<SalesOrderDto>.Failure($"Product ID {update_line.ProductId} is not Existed !");
+
+                    salesOrderExist.Lines.Add(new SalesOrderLine
+                    {
+                        ProductId = update_line.ProductId,
+                        RowNumber = rowNumber,
+                        UnitPrice = product.BasePrice,
+                        OrderedQty = update_line.OrderedQty,
+                    });
+
+                    rowNumber++;
                 }
 
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
-
-                #endregion
-
-                #region Reservation Stock
-
-                foreach (var reservation in reservations)
-                {
-                    reservation.SourceId = salesOrderExist.Id;
-                    await _unitOfWork.InventoryReservationRepository.AddAsync(reservation);
-                }
-
-                await _unitOfWork.SaveChangesAsync(cancellationToken);
-
-                #endregion
 
                 await _unitOfWork.CommitTransactionAsync(cancellationToken);
 
@@ -195,63 +165,7 @@ namespace InventorySystem.Application.Services
                 await _unitOfWork.RollbackTransactionAsync(cancellationToken);
                 return Result<SalesOrderDto>.Failure(ex.Message);
             }
-        }
-
-        private async Task<(List<SalesOrderLine>, List<InventoryReservation>)> BuildFifoReservation(
-                            IEnumerable<(int ProductId, decimal Qty)> lines,
-                            CancellationToken cancellationToken)
-        {
-            var salesOrderLines = new List<SalesOrderLine>();
-            var reservations = new List<InventoryReservation>();
-            int rowNumber = 1;
-
-            foreach (var line in lines)
-            {
-                var layers = await _unitOfWork.InventoryCostLayerRepository
-                    .GetFIFOProductsById(line.ProductId);
-
-                if (layers == null || layers.Count == 0)
-                    throw new Exception($"Product {line.ProductId} not in inventory");
-
-                decimal remainingQty = line.Qty;
-
-                foreach (var layer in layers)
-                {
-                    if (remainingQty <= 0)
-                        break;
-
-                    var takeQty = Math.Min(layer.RemainingQty, remainingQty);
-
-                    remainingQty -= takeQty;
-
-                    salesOrderLines.Add(new SalesOrderLine
-                    {
-                        ProductId = line.ProductId,
-                        RowNumber = rowNumber,
-                        UnitPrice = layer.UnitCost,
-                        OrderedQty = takeQty
-                    });
-
-                    reservations.Add(new InventoryReservation
-                    {
-                        ProductId = line.ProductId,
-                        LayerId = layer.Id,
-                        RowNumber = rowNumber,
-                        ReservedQty = takeQty,
-                        UnitPrice = layer.UnitCost
-                    });
-
-                    layer.ReservedQty += takeQty;
-                    rowNumber++;
-                }
-
-
-                if (remainingQty > 0)
-                    throw new Exception($"Not enough stock for product {line.ProductId}");
-            }
-
-            return (salesOrderLines, reservations);
-        }
+        }        
 
         public async Task<Result> DeleteAsync(int id, CancellationToken cancellationToken = default)
         {
@@ -285,14 +199,98 @@ namespace InventorySystem.Application.Services
 
         public async Task<Result> ConfirmAsync(int id, CancellationToken cancellationToken = default)
         {
-            SalesOrder so = await _unitOfWork.SalesOrderRepository.GetWithLinesAsync(id, cancellationToken);
-            if (so == null)
-                return Result.Failure($"SalesOrder with ID {id} not found.");
+            try
+            {
+                await _unitOfWork.BeginTransactionAsync(cancellationToken);
 
-            so.Confirm();
+                var so = await _unitOfWork.SalesOrderRepository.GetWithLinesAsync(id, cancellationToken);
+                if (so == null)
+                    return Result.Failure($"SalesOrder with ID {id} not found.");
 
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
-            return Result.Success();
+                so.Confirm();
+
+                #region FIFO - Reservation 
+
+                int rowNumber = 1;
+                const decimal margin = 0.3m;
+                var salesOrderLinesSplit = new List<SalesOrderLine>();
+
+                foreach (var salesOrderLine in so.Lines)
+                {
+                    var layers = await _unitOfWork.InventoryCostLayerRepository.GetFIFOProductsById(salesOrderLine.ProductId);
+
+                    if (layers == null || layers.Count == 0)
+                        throw new Exception($"Product {salesOrderLine.ProductId} not in inventory");
+
+                    decimal remainingOrderedQty = salesOrderLine.OrderedQty;
+                    foreach (var layer in layers)
+                    {
+                        if (remainingOrderedQty <= 0)
+                            break;
+
+                        // When post SO, CostLayer just Reserve, that means not exactly minus quantity
+                        // so we have to re-calc available stock
+                        var available = layer.RemainingQty - layer.ReservedQty;
+
+                        // Move to the next layer
+                        if (available <= 0)
+                            continue;
+
+                        var takeQty = Math.Min(available, remainingOrderedQty);
+                        remainingOrderedQty -= takeQty;
+
+                        var sellingPrice = Math.Round(layer.UnitCost * (1 + margin), 2);
+
+                        // Overwrite lines (because 1 Product can have 2 UnitCost)
+                        salesOrderLinesSplit.Add(new SalesOrderLine
+                        {
+                            SalesOrderId = salesOrderLine.SalesOrderId,
+                            ProductId = salesOrderLine.ProductId,
+                            RowNumber = rowNumber,
+
+                            UnitPrice = sellingPrice,
+                            OrderedQty = takeQty,
+                        });
+
+                        var reservation = new InventoryReservation
+                        {
+                            LayerId = layer.Id,
+                            ProductId = salesOrderLine.ProductId,
+                            SourceId = so.Id,
+                            RowNumber = rowNumber,
+                            ReservedQty = takeQty,
+                            UnitCost = layer.UnitCost
+                        };
+                        await _unitOfWork.InventoryReservationRepository.AddAsync(reservation);
+
+                        layer.ReservedQty += takeQty;
+                        rowNumber++;
+                    }
+
+                    if (remainingOrderedQty > 0)
+                        throw new Exception($"Not enough stock for product {salesOrderLine.ProductId}");
+                }
+
+                #endregion
+
+                #region Re - check SalesOrder
+
+                so.Lines.Clear();
+                foreach(var split in salesOrderLinesSplit)
+                    so.Lines.Add(split);
+
+                #endregion
+
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+                await _unitOfWork.CommitTransactionAsync(cancellationToken);
+
+                return Result.Success();
+            }
+            catch(Exception ex)
+            {
+                await _unitOfWork.RollbackTransactionAsync(cancellationToken);
+                return Result.Failure(ex.Message);
+            }         
         }
 
         #region Helpers

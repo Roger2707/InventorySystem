@@ -1,5 +1,6 @@
 ﻿using InventorySystem.Application.Interfaces;
 using InventorySystem.Domain.Entities.SalesOrder;
+using InventorySystem.Domain.Enums;
 using InventorySystem.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -7,6 +8,8 @@ namespace InventorySystem.Infrastructure.Repositories
 {
     public class SalesOrderRepository : Repository<SalesOrder>, ISalesOrderRepository
     {
+        public object DSalesOrderStatus { get; private set; }
+
         public SalesOrderRepository(ApplicationDbContext context) : base(context)
         {
         }
@@ -30,6 +33,18 @@ namespace InventorySystem.Infrastructure.Repositories
                                         .ThenInclude(l => l.Product)
                                         .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
             return salesOrder;
+        }
+
+        public async Task<List<SalesOrder>> GetConfirmedSalesOrders(CancellationToken cancellationToken = default)
+        {
+            var salesOrders = await _context.SalesOrders
+                            .Include(s => s.Customer)
+                            .Include(s => s.Lines)
+                            .ThenInclude(l => l.Product)
+                            .Where(s => s.Status == SalesOrderStatus.Confirmed)
+                            .ToListAsync(cancellationToken);
+
+            return salesOrders;
         }
     }
 }
