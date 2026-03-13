@@ -830,34 +830,23 @@ namespace InventorySystem.Infrastructure.Seed
 
         public async Task SeedFlowDataAsync()
         {
-            try
+            if (!await _context.PurchaseOrders.AnyAsync())
+                await SeedPurchaseOrdersAsync();
+
+            if (!await _context.GoodsReceipts.AnyAsync())
+                await SeedGoodsReceiptsAsync();
+
+            if (!await _context.SalesOrders.AnyAsync())
             {
-                await _unitOfWork.BeginTransactionAsync();
-
-                if (!await _context.PurchaseOrders.AnyAsync())
-                    await SeedPurchaseOrdersAsync();
-
-                if (!await _context.GoodsReceipts.AnyAsync())
-                    await SeedGoodsReceiptsAsync();
-
-                if (!await _context.SalesOrders.AnyAsync())
-                    await SeedSalesOrdersAsync();
-
-                //if (!await _context.Deliveries.AnyAsync())
-                //    await SeedDeliveriesAsync();
-
-                //if (!await _context.Invoices.AnyAsync())
-                //    await SeedInvoicesAsync();
-
-                await _unitOfWork.SaveChangesAsync();
-                await _unitOfWork.CommitTransactionAsync();
-
+                await SeedSalesOrdersAsync();
+                await PostHalfSalesOrdersAsync();
             }
-            catch ( Exception ex )
-            {
-                await _unitOfWork.RollbackTransactionAsync();
-                throw ex;
-            }
+
+            if (!await _context.Deliveries.AnyAsync())
+                await SeedDeliveriesAsync();
+
+            if (!await _context.Invoices.AnyAsync())
+                await SeedInvoicesAsync();
         }
 
         private async Task SeedPurchaseOrdersAsync()
@@ -979,112 +968,156 @@ namespace InventorySystem.Infrastructure.Seed
             var random = new Random();
             var salesOrders = new List<SalesOrder>();
 
-            // lấy cost layers của product 1 (FIFO)
-            var layers = await _context.InventoryCostLayers
-                .Where(x => x.ProductId == 1)
-                .OrderBy(x => x.ReceiptDate)
+            var productsWithLayers = await _context.InventoryCostLayers
+                .GroupBy(x => x.ProductId)
+                .Where(g => g.Count() >= 2)
+                .Select(g => new
+                {
+                    ProductId = g.Key,
+                    Layers = g.OrderBy(x => x.ReceiptDate).ToList()
+                })
                 .ToListAsync();
 
-            if (layers.Count < 2)
-                return;
+            int soIndex = 1;
 
-            var firstLayer = layers[0];
-            var secondLayer = layers[1];
-
-            var available1 = firstLayer.RemainingQty - firstLayer.ReservedQty;
-            var available2 = secondLayer.RemainingQty - secondLayer.ReservedQty;
-
-            // đảm bảo orderQty vượt layer1 nhưng không vượt layer1 + layer2
-            var orderedQty = Math.Min(available1 + available2 - 1, available1 + 5);
-
-            var so = new SalesOrder
+            // tạo nhiều SO split
+            foreach (var p in productsWithLayers.Take(3)) // muốn nhiều hơn tăng số này
             {
-                OrderNumber = $"SO-{DateTime.UtcNow:yyyyMMdd}-001",
-                CustomerId = random.Next(1, 6),
-                OrderDate = DateTime.UtcNow,
-                Status = SalesOrderStatus.Draft,
-                Lines = new List<SalesOrderLine>
-                {
-                    new SalesOrderLine
-                    {
-                        ProductId = 1,
-                        RowNumber = 1,
-                        OrderedQty = orderedQty,
-                        UnitPrice = 0
-                    }
-                }
-            };
-            salesOrders.Add(so);
+                var layer1 = p.Layers[0];
+                var layer2 = p.Layers[1];
 
-            // seed thêm vài SO random
-            for (int i = 2; i <= 5; i++)
-            {
-                var productId = random.Next(1, 10);
+                var available1 = layer1.RemainingQty - layer1.ReservedQty;
+                var available2 = layer2.RemainingQty - layer2.ReservedQty;
 
-                var productLayers = await _context.InventoryCostLayers
-                    .Where(x => x.ProductId == productId)
-                    .ToListAsync();
-
-                if (!productLayers.Any())
+                if (available1 <= 0 || available2 <= 0)
                     continue;
 
-                var totalAvailable = productLayers.Sum(x => x.RemainingQty - x.ReservedQty);
+                var splitQty = Math.Min(available1 + available2 - 1, available1 + random.Next(1, 10));
 
-                if (totalAvailable <= 0)
-                    continue;
-
-                var orderedQtyRandom = random.Next(1, (int)Math.Min(totalAvailable, 20));
-
-                salesOrders.Add(new SalesOrder
+                var so = new SalesOrder
                 {
-                    OrderNumber = $"SO-{DateTime.UtcNow:yyyyMMdd}-{i:D3}",
+                    OrderNumber = $"SO-{DateTime.UtcNow:yyyyMMdd}-{soIndex++:D3}",
                     CustomerId = random.Next(1, 6),
                     OrderDate = DateTime.UtcNow,
                     Status = SalesOrderStatus.Draft,
                     Lines = new List<SalesOrderLine>
-                    {
-                        new SalesOrderLine
-                        {
-                            ProductId = productId,
-                            RowNumber = 1,
-                            OrderedQty = orderedQtyRandom,
-                            UnitPrice = 0
-                        }
-                    }
-                });
+            {
+                new SalesOrderLine
+                {
+                    ProductId = p.ProductId,
+                    RowNumber = 1,
+                    OrderedQty = splitQty,
+                    UnitPrice = 0
+                }
             }
-            _context.SalesOrders.AddRange(salesOrders);
+                };
 
+                salesOrders.Add(so);
+            }
+
+            // thêm SO random nhiều line
+            for (int i = 0; i < 5; i++)
+            {
+                var so = new SalesOrder
+                {
+                    OrderNumber = $"SO-{DateTime.UtcNow:yyyyMMdd}-{soIndex++:D3}",
+                    CustomerId = random.Next(1, 6),
+                    OrderDate = DateTime.UtcNow,
+                    Status = SalesOrderStatus.Draft,
+                    Lines = new List<SalesOrderLine>()
+                };
+
+                var lineCount = random.Next(2, 4);
+
+                var productIds = await _context.Products
+                    .Select(p => p.Id)
+                    .OrderBy(x => Guid.NewGuid())
+                    .Take(lineCount)
+                    .ToListAsync();
+
+                int row = 1;
+
+                foreach (var productId in productIds)
+                {
+                    var layers = await _context.InventoryCostLayers
+                        .Where(x => x.ProductId == productId)
+                        .ToListAsync();
+
+                    if (!layers.Any())
+                        continue;
+
+                    var totalAvailable = layers.Sum(x => x.RemainingQty - x.ReservedQty);
+
+                    if (totalAvailable <= 0)
+                        continue;
+
+                    var qty = random.Next(1, (int)Math.Min(totalAvailable, 20));
+
+                    so.Lines.Add(new SalesOrderLine
+                    {
+                        ProductId = productId,
+                        RowNumber = row++,
+                        OrderedQty = qty,
+                        UnitPrice = 0
+                    });
+                }
+
+                if (so.Lines.Any())
+                    salesOrders.Add(so);
+            }
+
+            _context.SalesOrders.AddRange(salesOrders);
             await _context.SaveChangesAsync();
+        }
+
+        private async Task PostHalfSalesOrdersAsync()
+        {
+            var salesOrders = await _context.SalesOrders
+                .OrderBy(x => x.Id)
+                .ToListAsync();
+
+            var halfCount = salesOrders.Count / 2;
+
+            var toPost = salesOrders
+                .Take(halfCount)
+                .Select(x => x.Id)
+                .ToList();
+
+            foreach (var soId in toPost)
+            {
+                await _salesOrderService.ConfirmAsync(soId);
+            }
         }
 
         public async Task SeedDeliveriesAsync(CancellationToken cancellationToken = default)
         {
+            if (await _context.Deliveries.AnyAsync())
+                return;
+
             var salesOrders = await _salesOrderService.GetConfirmedSalesOrders(cancellationToken);
-            if(!salesOrders.IsSuccess)
+            if (!salesOrders.IsSuccess)
                 throw new Exception(salesOrders.ErrorMessage);
 
             foreach (var so in salesOrders.Data)
             {
-                bool isFullDelivery = so.Id % 2 == 0;
+                var deliveryLines = so.Lines
+                    .Where(x => x.RemainingQty > 0)
+                    .Select(x => new CreateDeliveryLineDto
+                    {
+                        ProductId = x.ProductId,
+                        RowNumber = x.RowNumber,
+                        DeliveredQty = x.RemainingQty
+                    })
+                    .ToList();
+
+                if (!deliveryLines.Any())
+                    continue;
+
                 var createDto = new CreateDeliveryDto
                 {
                     SalesOrderId = so.Id,
-                    LinesDto = so.Lines
-                        .Where(l => l.RemainingQty > 0)
-                        .Select(l => new CreateDeliveryLineDto
-                        {
-                            ProductId = l.ProductId,
-                            RowNumber = l.RowNumber,
-                            // Id is odd number => Completed || Partial SO
-                            DeliveredQty = isFullDelivery
-                                            ? l.RemainingQty
-                                            : Math.Max(1, l.RemainingQty / 2)
-                        }).ToList()
+                    LinesDto = deliveryLines
                 };
-
-                if (!createDto.LinesDto.Any())
-                    continue;
 
                 var createResult = await _deliveryService.CreateAsync(createDto, cancellationToken);
 
@@ -1102,6 +1135,9 @@ namespace InventorySystem.Infrastructure.Seed
 
         public async Task SeedInvoicesAsync(CancellationToken cancellationToken = default)
         {
+            if (_context.Invoices.Any())
+                return;
+
             var deliveries = await _deliveryService.GetPostedDeliveriesWithLinesAsync(cancellationToken);
             if(!deliveries.IsSuccess)
                 throw new Exception(deliveries.ErrorMessage);

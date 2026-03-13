@@ -71,18 +71,17 @@ namespace InventorySystem.Application.Services
                     .FirstOrDefault(sl => sl.ProductId == deliveryLineDto.ProductId && sl.SalesOrderId == createDeliveryDto.SalesOrderId && deliveryLineDto.RowNumber == sl.RowNumber);
 
                 if (salesOrderLine == null)
-                    return Result<DeliveryDto>.Failure($"Product ID {deliveryLineDto.ProductId} is not Exist in SalesOrder {salesOrderLine.SalesOrderId} !");
+                    return Result<DeliveryDto>.Failure($"Product ID {deliveryLineDto.ProductId} is not Exist in SalesOrder {createDeliveryDto.SalesOrderId} !");
 
                 if (deliveryLineDto.DeliveredQty > salesOrderLine.RemainingQty)
                     return Result<DeliveryDto>.Failure("Delivery Qty cannot be greater than RemainingQty");
 
-                var deliveryLine = new DeliveryLine
+                deliveriesLines.Add(new DeliveryLine
                 {
                     ProductId = deliveryLineDto.ProductId,
                     RowNumber = deliveryLineDto.RowNumber,
                     DeliveredQty = deliveryLineDto.DeliveredQty,
-                };
-                deliveriesLines.Add(deliveryLine);
+                });
             }
 
             string orderNumber = await _deliveryGenerator.GenerateAsync(cancellationToken);
@@ -195,112 +194,121 @@ namespace InventorySystem.Application.Services
 
                 var salesOrder = await _unitOfWork.SalesOrderRepository.GetWithLinesAsync(delivery.SalesOrderId, cancellationToken);
                 if (salesOrder == null || salesOrder.Status == SalesOrderStatus.Completed || salesOrder.Status == SalesOrderStatus.Cancelled)
-                    return Result.Failure("Something went wrong with own SalesOrder !");
+                    return Result.Failure("Something went wrong with own SalesOrder!");
 
-                var reservations = await _unitOfWork.InventoryReservationRepository.GetReservationBySalesOrder(delivery.SalesOrderId, cancellationToken);
+                var reservations = await _unitOfWork.InventoryReservationRepository
+                    .GetReservationBySalesOrder(delivery.SalesOrderId, cancellationToken);
+
                 var costLayerIds = reservations.Select(x => x.LayerId).Distinct().ToList();
-                var costLayers = await _unitOfWork.InventoryCostLayerRepository.GetByIdsAsync(costLayerIds, cancellationToken);
+                var costLayers = await _unitOfWork.InventoryCostLayerRepository
+                    .GetByIdsAsync(costLayerIds, cancellationToken);
 
-                int isSalesOrderCompleted = 0;
+                // Convert to dictionary
+                var salesOrderLinesDict = salesOrder.Lines
+                    .ToDictionary(x => (x.ProductId, x.RowNumber));
+
+                var reservationDict = reservations
+                    .ToDictionary(x => (x.ProductId, x.RowNumber));
+
+                var costLayerDict = costLayers
+                    .ToDictionary(x => x.Id);
+
+                int completedLines = 0;
                 var journalEntryLines = new List<JournalEntryLine>();
+
                 foreach (var deliveryLine in delivery.Lines)
                 {
-                    var salesOrderLine = salesOrder.Lines.FirstOrDefault(sl => sl.ProductId == deliveryLine.ProductId && sl.RowNumber == deliveryLine.RowNumber);
-                    if(salesOrderLine == null)
-                        return Result.Failure($"This DeliveryLine {deliveryLine.RowNumber}: Product_{deliveryLine.ProductId} is not found SalesOrderLine !");
+                    var key = (deliveryLine.ProductId, deliveryLine.RowNumber);
 
-                    if(deliveryLine.DeliveredQty > salesOrderLine.RemainingQty)
-                        return Result.Failure($"This DeliveryLine {deliveryLine.RowNumber}: Product_{deliveryLine.ProductId} has quanty greater than SalesOrderLine !");
+                    if (!salesOrderLinesDict.TryGetValue(key, out var salesOrderLine))
+                        return Result.Failure($"SalesOrderLine not found Product_{deliveryLine.ProductId} Row_{deliveryLine.RowNumber}");
 
-                    // Update SalesOrderLine Qty
+                    if (deliveryLine.DeliveredQty > salesOrderLine.RemainingQty)
+                        return Result.Failure($"Delivery qty greater than SalesOrder remaining qty");
+
+                    // Update SO line
                     salesOrderLine.DeliveredQty += deliveryLine.DeliveredQty;
 
-                    // Check each Line OrderQuanty and DeliveredQty
                     if (salesOrderLine.DeliveredQty >= salesOrderLine.OrderedQty)
-                        isSalesOrderCompleted++;
+                        completedLines++;
 
-                    var reservation = reservations.FirstOrDefault(r => r.ProductId == deliveryLine.ProductId && r.RowNumber == deliveryLine.RowNumber);
-                    if(reservation == null)
-                        return Result.Failure($"This DeliveryLine {deliveryLine.RowNumber}: Product_{deliveryLine.ProductId}, SalesOrder: {salesOrderLine.SalesOrderId}, Row: {salesOrderLine.RowNumber} can not find Reservation !");
+                    if (!reservationDict.TryGetValue(key, out var reservation))
+                        return Result.Failure($"Reservation not found Product_{deliveryLine.ProductId} Row_{deliveryLine.RowNumber}");
 
-                    // Reduce ReservedQty in Reservation entity
                     if (reservation.ReservedQty < deliveryLine.DeliveredQty)
                         return Result.Failure("Reservation not enough");
 
                     reservation.ReservedQty -= deliveryLine.DeliveredQty;
-                    if(reservation.ReservedQty == 0)
+
+                    if (reservation.ReservedQty == 0)
                         reservation.IsDeleted = true;
 
-                    // Cost Layer
-                    int costLayerId = reservation.LayerId;
-                    var costLayer = costLayers.FirstOrDefault(l => l.Id == costLayerId && l.RemainingQty >= deliveryLine.DeliveredQty);
-                    if (costLayer == null)
-                        throw new Exception($"Can not find Layer : {costLayerId}, SO: {salesOrderLine.SalesOrderId}, Product: {deliveryLine.ProductId}, RN: {deliveryLine.RowNumber}");
+                    if (!costLayerDict.TryGetValue(reservation.LayerId, out var costLayer))
+                        throw new Exception($"Layer {reservation.LayerId} not found");
 
                     if (costLayer.RemainingQty < deliveryLine.DeliveredQty)
-                        return Result.Failure($"Cost layer: {costLayerId} not enough Stock: {costLayer.RemainingQty} < Needed: {deliveryLine.DeliveredQty}");
+                        return Result.Failure($"Layer {reservation.LayerId} not enough stock");
 
+                    // Reduce layer
                     costLayer.RemainingQty -= deliveryLine.DeliveredQty;
                     costLayer.ReservedQty -= deliveryLine.DeliveredQty;
 
-                    // Update DeliveryLine
+                    // Update delivery line
                     deliveryLine.UnitCost = costLayer.UnitCost;
-                    deliveryLine.CostLayerId = costLayerId;
+                    deliveryLine.CostLayerId = reservation.LayerId;
 
-                    // Ledger (History Transactions)
+                    // Ledger
                     var ledger = new InventoryLedger
                     {
                         ProductId = deliveryLine.ProductId,
                         WarehouseId = costLayer.WarehouseId,
                         TransactionType = InventoryTransactionType.Issue,
-                        ReferenceId = delivery.SalesOrderId,
+                        ReferenceId = delivery.Id,
                         ReferenceType = "Delivery",
                         QuantityIn = 0,
                         QuantityOut = deliveryLine.DeliveredQty,
                         UnitCost = costLayer.UnitCost,
-                        TotalCost = costLayer.UnitCost * deliveryLine.DeliveredQty
+                        TotalCost = deliveryLine.LineTotal
                     };
 
                     await _unitOfWork.InventoryLedgerRepository.AddAsync(ledger);
 
-                    // Insert JournalEntry (COGS)
-                    var journalEntryLineCOGS = new JournalEntryLine
+                    // Accounting
+                    var journalCOGS = new JournalEntryLine
                     {
                         AccountId = (int)AccountCode.COGS,
                         Debit = deliveryLine.LineTotal,
                         Credit = 0,
-                        Description = $"GR:{id}: Product: {deliveryLine.ProductId} * {deliveryLine.DeliveredQty}"
+                        Description = $"DEL:{id}: Product {deliveryLine.ProductId} * {deliveryLine.DeliveredQty}"
                     };
 
-                    // Insert JournalEntry (Inventory)
-                    var journalEntryLineInventory = new JournalEntryLine
+                    var journalInventory = new JournalEntryLine
                     {
                         AccountId = (int)AccountCode.Inventory,
                         Debit = 0,
                         Credit = deliveryLine.LineTotal,
-                        Description = $"DE:{id}: Product: {deliveryLine.ProductId} * {deliveryLine.DeliveredQty}"
+                        Description = $"DEL:{id}: Product {deliveryLine.ProductId} * {deliveryLine.DeliveredQty}"
                     };
 
-                    journalEntryLines.Add(journalEntryLineCOGS);
-                    journalEntryLines.Add(journalEntryLineInventory);
+                    journalEntryLines.Add(journalCOGS);
+                    journalEntryLines.Add(journalInventory);
                 }
 
-                // Update SalesOrder Status depends on all qty completed
-                if (isSalesOrderCompleted == salesOrder.Lines.Count)
+                // Update SO status
+                if (completedLines == salesOrder.Lines.Count)
                     salesOrder.Status = SalesOrderStatus.Completed;
                 else
                     salesOrder.Status = SalesOrderStatus.PartiallyDelivered;
 
-                // Update Delivery Status
                 delivery.Status = DeliveryStatus.Posted;
 
-                // Insert JournalEntry
                 var journalEntry = new JournalEntry
                 {
                     Reference = delivery.OrderNumber,
                     DeliveryId = delivery.Id,
                     Lines = journalEntryLines
                 };
+
                 await _unitOfWork.JournalEntryRepository.AddAsync(journalEntry);
 
                 await _unitOfWork.SaveChangesAsync(cancellationToken);

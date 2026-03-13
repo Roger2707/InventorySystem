@@ -3,6 +3,7 @@ using InventorySystem.Application.Interfaces;
 using InventorySystem.Application.Interfaces.Services;
 using InventorySystem.Domain.Common;
 using InventorySystem.Domain.Entities.Accounts;
+using InventorySystem.Domain.Entities.Delivery;
 using InventorySystem.Domain.Entities.Invoice;
 using InventorySystem.Domain.Enums;
 
@@ -52,35 +53,38 @@ namespace InventorySystem.Application.Services
             if(salesOrder == null)
                 return Result<InvoiceDto>.Failure($"SalesOrder: {delivery.SalesOrderId} is not valid !");
 
-            var salesOrderLines = salesOrder.Lines.ToList();
-
             var invoiceLines = new List<InvoiceLine>();
-            foreach(var invoice_line_Dto in createInvoiceDto.CreateInvoiceLineDtos)
+            var deliveryLineDict = delivery.Lines.ToDictionary(x => (x.ProductId, x.RowNumber));
+            var salesOrderLineDict = salesOrder.Lines.ToDictionary(x => (x.ProductId, x.RowNumber));
+
+            foreach (var invoice_line_dto in createInvoiceDto.CreateInvoiceLineDtos)
             {
-                var delivery_line = delivery.Lines.FirstOrDefault(d => d.ProductId == invoice_line_Dto.ProductId && d.RowNumber == invoice_line_Dto.RowNumber);
-                if (delivery_line == null)
-                    return Result<InvoiceDto>.Failure($"Product : {invoice_line_Dto.ProductId} is not existed in Delivery !");
+                if (invoice_line_dto.InvoiceQuantity <= 0)
+                    return Result<InvoiceDto>.Failure("Quantity must be greater than 0");
 
-                var salesOrderLine = salesOrderLines.FirstOrDefault(l => l.ProductId == delivery_line.ProductId && l.RowNumber == delivery_line.RowNumber);
-                if(salesOrderLine == null)
-                    return Result<InvoiceDto>.Failure($"Product : {invoice_line_Dto.ProductId} is not existed in SalesOrder !");
+                var key = (invoice_line_dto.ProductId, invoice_line_dto.RowNumber);
 
-                if (invoice_line_Dto.InvoiceQuantity > delivery_line.RemainingInvoicedQty)
-                    return Result<InvoiceDto>.Failure($"Invocie {invoice_line_Dto.RowNumber} has Quantity: {invoice_line_Dto.InvoiceQuantity} > [delivery]: {delivery_line.RemainingInvoicedQty}");
+                if (!deliveryLineDict.TryGetValue(key, out var deliveryLine))
+                    return Result<InvoiceDto>.Failure($"Product {invoice_line_dto.ProductId} not in Delivery");
 
-                var invoiceLine = new InvoiceLine()
+                if (!salesOrderLineDict.TryGetValue(key, out var salesOrderLine))
+                    return Result<InvoiceDto>.Failure($"Product {invoice_line_dto.ProductId} not in SalesOrder");
+
+                if (invoice_line_dto.InvoiceQuantity > deliveryLine.RemainingInvoicedQty)
+                    return Result<InvoiceDto>.Failure("Invoice quantity exceeds delivery");
+
+                var line = new InvoiceLine
                 {
                     DeliveryId = delivery.Id,
-                    ProductId = invoice_line_Dto.ProductId,
-                    RowNumber = invoice_line_Dto.RowNumber,
-                    Quantity = invoice_line_Dto.InvoiceQuantity,
-                    // Invoice (Price) must be get from Sales
+                    ProductId = invoice_line_dto.ProductId,
+                    RowNumber = invoice_line_dto.RowNumber,
+                    Quantity = invoice_line_dto.InvoiceQuantity,
                     UnitPrice = salesOrderLine.UnitPrice
                 };
-                invoiceLines.Add(invoiceLine);
 
-                // update invoicedQty in DelieveryLine
-                delivery_line.InvoicedQty += invoice_line_Dto.InvoiceQuantity;
+                deliveryLine.InvoicedQty += invoice_line_dto.InvoiceQuantity;
+
+                invoiceLines.Add(line);
             }
 
             // If no lines => error
@@ -102,6 +106,7 @@ namespace InventorySystem.Application.Services
             var dto = MapToDto(invoice);
             return Result<InvoiceDto>.Success(dto);
         }
+
         public async Task<Result> DeleteAsync(int id, CancellationToken cancellationToken = default)
         {
             var invoice = await _unitOfWork.InvoiceRepository.GetByIdAsync(id);
@@ -165,6 +170,12 @@ namespace InventorySystem.Application.Services
                     Lines = journalEntryLines
                 };
                 await _unitOfWork.JournalEntryRepository.AddAsync(journalEntry);
+
+                var totalDebit = journalEntryLines.Sum(x => x.Debit);
+                var totalCredit = journalEntryLines.Sum(x => x.Credit);
+
+                if (totalDebit != totalCredit)
+                    throw new Exception("Journal not balanced");
 
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
                 await _unitOfWork.CommitTransactionAsync(cancellationToken);
