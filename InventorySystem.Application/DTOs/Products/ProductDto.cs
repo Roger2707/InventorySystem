@@ -13,6 +13,7 @@
         public int BaseUoMId { get; set; }
         public string BaseUoMName { get; set; }
 
+        public decimal BasePrice { get; set; }
         public decimal MinStockLevel { get; set; }
         public bool IsPerishable { get; set; }
         public bool IsActive { get; set; }

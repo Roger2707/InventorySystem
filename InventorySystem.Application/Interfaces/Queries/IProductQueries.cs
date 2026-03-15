@@ -1,4 +1,5 @@
-﻿using InventorySystem.Application.DTOs.Products;
+﻿using InventorySystem.Application.Common.Pagination;
+using InventorySystem.Application.DTOs.Products;
 using InventorySystem.Domain.Common;
 
 namespace InventorySystem.Application.Interfaces.Queries

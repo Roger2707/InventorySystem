@@ -15,7 +15,20 @@ public class ProductController : ControllerBase
         _productService = productService;
     }
 
-    [HttpGet]
+    [HttpGet("get-products-paged")]
+    public async Task<ActionResult<IEnumerable<ProductDto>>> GetProductsPaged([FromQuery] ProductParams productParams, CancellationToken cancellationToken = default)
+    {
+        var result = await _productService.GetProductsPagedAsync(productParams, cancellationToken);
+
+        if (!result.IsSuccess)
+        {
+            return BadRequest(result.ErrorMessage);
+        }
+
+        return Ok(result.Data);
+    }
+
+    [HttpGet("get-all")]
     public async Task<ActionResult<IEnumerable<ProductDto>>> GetAll(CancellationToken cancellationToken = default)
     {
         var result = await _productService.GetAllAsync(cancellationToken);

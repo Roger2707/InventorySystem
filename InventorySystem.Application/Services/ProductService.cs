@@ -1,10 +1,10 @@
-﻿using InventorySystem.Application.DTOs.Products;
+﻿using InventorySystem.Application.Common.Pagination;
+using InventorySystem.Application.DTOs.Products;
 using InventorySystem.Application.Interfaces.Generators;
 using InventorySystem.Application.Interfaces.Queries;
 using InventorySystem.Application.Interfaces.Repositories;
 using InventorySystem.Application.Interfaces.Services;
 using InventorySystem.Domain.Common;
-using InventorySystem.Domain.Entities;
 using InventorySystem.Domain.Entities.Products;
 
 namespace InventorySystem.Application.Services
@@ -16,6 +16,7 @@ namespace InventorySystem.Application.Services
         private readonly ISkuGenerator _skuGenerator;
         private readonly IBarcodeGenerator _barcodeGenerator;
 
+        #region GETs
         public ProductService(IUnitOfWork unitOfWork, IProductQueries productQueries, ISkuGenerator skuGenerator, IBarcodeGenerator barcodeGenerator)
         {
             _unitOfWork = unitOfWork;
@@ -39,6 +40,16 @@ namespace InventorySystem.Application.Services
             }
             return Result<ProductDto>.Success(product);
         }
+
+        public async Task<Result<PagedResult<ProductDto>>> GetProductsPagedAsync(ProductParams param, CancellationToken cancellationToken)
+        {
+            var productPaged = await _unitOfWork.ProductRepository.GetProductsPagedAsync(param);
+            return Result<PagedResult<ProductDto>>.Success(productPaged);
+        }
+
+        #endregion
+
+        #region CRUDs
 
         public async Task<Result<ProductDto>> CreateAsync(CreateProductDto createProductDto, CancellationToken cancellationToken)
         {
@@ -133,6 +144,8 @@ namespace InventorySystem.Application.Services
             var exist = await _unitOfWork.ProductRepository.ExistsAsync(p => p.Id == id, cancellationToken);
             return Result<bool>.Success(exist);
         }
+
+        #endregion
 
         #region Helpers
 

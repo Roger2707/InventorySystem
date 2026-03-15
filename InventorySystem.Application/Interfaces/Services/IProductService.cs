@@ -1,4 +1,5 @@
-﻿using InventorySystem.Application.DTOs.Products;
+﻿using InventorySystem.Application.Common.Pagination;
+using InventorySystem.Application.DTOs.Products;
 using InventorySystem.Domain.Common;
 
 namespace InventorySystem.Application.Interfaces.Services
@@ -7,6 +8,7 @@ namespace InventorySystem.Application.Interfaces.Services
     {
         Task<Result<List<ProductDto>>> GetAllAsync(CancellationToken cancellationToken);
         Task<Result<ProductDto>> GetByIdAsync(int id, CancellationToken cancellationToken);
+        Task<Result<PagedResult<ProductDto>>> GetProductsPagedAsync(ProductParams param, CancellationToken cancellationToken);
 
         Task<Result<ProductDto>> CreateAsync(CreateProductDto createProductDto, CancellationToken cancellationToken);
         Task<Result<ProductDto>> UpdateAsync(int id, UpdateProductDto createProductDto, CancellationToken cancellationToken);

@@ -26,6 +26,7 @@ namespace InventorySystem.Infrastructure.Queries
 	                                    , ct.Name as CategoryName
 	                                    , p.BaseUoMId
 	                                    , u_base.Name as BaseUoMName
+                                        , p.BasePrice
 	                                    , p.MinStockLevel
 	                                    , p.IsDeleted
 	                                    , p.IsPerishable
@@ -71,6 +72,7 @@ namespace InventorySystem.Infrastructure.Queries
                         BaseUoMId = first.BaseUoMId,
                         BaseUoMName = first.BaseUoMName,
                         MinStockLevel = first.MinStockLevel,
+                        BasePrice = first.BasePrice,
                         IsPerishable = first.IsPerishable,
                         IsActive = first.IsActive,
                         CreatedAt = first.CreatedAt,
@@ -109,6 +111,7 @@ namespace InventorySystem.Infrastructure.Queries
 	                                    , ct.Name as CategoryName
 	                                    , p.BaseUoMId
 	                                    , u_base.Name as BaseUoMName
+                                        , p.BasePrice
 	                                    , p.MinStockLevel
 	                                    , p.IsDeleted
                                         , p.IsActive
@@ -155,6 +158,7 @@ namespace InventorySystem.Infrastructure.Queries
                         CategoryName = first.CategoryName,
                         BaseUoMId = first.BaseUoMId,
                         BaseUoMName = first.BaseUoMName,
+                        BasePrice = first.BasePrice,
                         MinStockLevel = first.MinStockLevel,
                         IsPerishable = first.IsPerishable,
                         IsActive = first.IsActive,
@@ -193,7 +197,7 @@ namespace InventorySystem.Infrastructure.Queries
 
             public int BaseUoMId { get; set; }
             public string BaseUoMName { get; set; }
-
+            public decimal BasePrice { get; set; }
             public decimal MinStockLevel { get; set; }
             public bool IsPerishable { get; set; }
             public bool IsActive { get; set; }
