@@ -1,9 +1,11 @@
-﻿namespace InventorySystem.Application.DTOs.PurchaseOrders
+namespace InventorySystem.Application.DTOs.PurchaseOrders
 {
     public class UpdatePurchaseOrderDto
     {
         public int SupplierId { get; set; }
         public DateTime OrderDate { get; set; }
+
+        public byte[]? RowVersion { get; set; }
 
         public List<UpdatePurchaseOrderLineDto> LinesDto { get; set; } = new();
     }

@@ -1,4 +1,4 @@
-﻿using InventorySystem.Application.DTOs.Delivery;
+using InventorySystem.Application.DTOs.Delivery;
 using InventorySystem.Application.Extensions;
 using InventorySystem.Application.Interfaces.Generators;
 using InventorySystem.Application.Interfaces.Repositories;
@@ -8,6 +8,7 @@ using InventorySystem.Domain.Entities.Accounts;
 using InventorySystem.Domain.Entities.Delivery;
 using InventorySystem.Domain.Entities.Inventory;
 using InventorySystem.Domain.Enums;
+using Microsoft.EntityFrameworkCore;
 
 namespace InventorySystem.Application.Services
 {
@@ -117,6 +118,12 @@ namespace InventorySystem.Application.Services
 
             #endregion
 
+            // Concurrency check: attach client RowVersion so EF can detect conflicts
+            if (updateDeliveryDto.RowVersion != null && existedDelivery.RowVersion != null)
+            {
+                existedDelivery.RowVersion = updateDeliveryDto.RowVersion;
+            }
+
             #region Remove Line Exist is not match New Lines
 
             var removedDeliveryLines = existedDelivery.Lines
@@ -157,7 +164,15 @@ namespace InventorySystem.Application.Services
                 }
             }
 
-            await _unitOfWork.SaveChangesAsync();
+            try
+            {
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                return Result<DeliveryDto>.Failure("Delivery đã được cập nhật bởi người dùng khác. Vui lòng tải lại dữ liệu và thử lại.");
+            }
+
             var dto = MapToDto(existedDelivery);
             return Result<DeliveryDto>.Success(dto);
         }
@@ -185,143 +200,157 @@ namespace InventorySystem.Application.Services
 
         public async Task<Result> PostAsync(int id, CancellationToken cancellationToken = default)
         {
-            try
+            const int maxAttempts = 3;
+
+            for (var attempt = 1; attempt <= maxAttempts; attempt++)
             {
-                await _unitOfWork.BeginTransactionAsync(cancellationToken);
-
-                var delivery = await _unitOfWork.DeliveryRepository.GetWithLinesAsync(id, cancellationToken);
-                if (delivery == null || delivery.Status == DeliveryStatus.Cancelled || delivery.Status == DeliveryStatus.Posted)
-                    return Result.Failure("Delivery invalid status!");
-
-                var salesOrder = await _unitOfWork.SalesOrderRepository.GetWithLinesAsync(delivery.SalesOrderId, cancellationToken);
-                if (salesOrder == null || salesOrder.Status == SalesOrderStatus.Completed || salesOrder.Status == SalesOrderStatus.Cancelled)
-                    return Result.Failure("Something went wrong with own SalesOrder!");
-
-                var reservations = await _unitOfWork.InventoryReservationRepository
-                    .GetReservationBySalesOrder(delivery.SalesOrderId, cancellationToken);
-
-                var costLayerIds = reservations.Select(x => x.LayerId).Distinct().ToList();
-                var costLayers = await _unitOfWork.InventoryCostLayerRepository
-                    .GetByIdsAsync(costLayerIds, cancellationToken);
-
-                // Convert to dictionary
-                var salesOrderLinesDict = salesOrder.Lines
-                    .ToDictionary(x => (x.ProductId, x.RowNumber));
-
-                var reservationDict = reservations
-                    .ToDictionary(x => (x.ProductId, x.RowNumber));
-
-                var costLayerDict = costLayers
-                    .ToDictionary(x => x.Id);
-
-                int completedLines = 0;
-                var journalEntryLines = new List<JournalEntryLine>();
-
-                foreach (var deliveryLine in delivery.Lines)
+                try
                 {
-                    var key = (deliveryLine.ProductId, deliveryLine.RowNumber);
+                    await _unitOfWork.BeginTransactionAsync(cancellationToken);
 
-                    if (!salesOrderLinesDict.TryGetValue(key, out var salesOrderLine))
-                        return Result.Failure($"SalesOrderLine not found Product_{deliveryLine.ProductId} Row_{deliveryLine.RowNumber}");
+                    var delivery = await _unitOfWork.DeliveryRepository.GetWithLinesAsync(id, cancellationToken);
+                    if (delivery == null || delivery.Status == DeliveryStatus.Cancelled || delivery.Status == DeliveryStatus.Posted)
+                        return Result.Failure("Delivery invalid status!");
 
-                    if (deliveryLine.DeliveredQty > salesOrderLine.RemainingQty)
-                        return Result.Failure($"Delivery qty greater than SalesOrder remaining qty");
+                    var salesOrder = await _unitOfWork.SalesOrderRepository.GetWithLinesAsync(delivery.SalesOrderId, cancellationToken);
+                    if (salesOrder == null || salesOrder.Status == SalesOrderStatus.Completed || salesOrder.Status == SalesOrderStatus.Cancelled)
+                        return Result.Failure("Something went wrong with own SalesOrder!");
 
-                    // Update SO line
-                    salesOrderLine.DeliveredQty += deliveryLine.DeliveredQty;
+                    var reservations = await _unitOfWork.InventoryReservationRepository
+                        .GetReservationBySalesOrder(delivery.SalesOrderId, cancellationToken);
 
-                    if (salesOrderLine.DeliveredQty >= salesOrderLine.OrderedQty)
-                        completedLines++;
+                    var costLayerIds = reservations.Select(x => x.LayerId).Distinct().ToList();
+                    var costLayers = await _unitOfWork.InventoryCostLayerRepository
+                        .GetByIdsAsync(costLayerIds, cancellationToken);
 
-                    if (!reservationDict.TryGetValue(key, out var reservation))
-                        return Result.Failure($"Reservation not found Product_{deliveryLine.ProductId} Row_{deliveryLine.RowNumber}");
+                    // Convert to dictionary
+                    var salesOrderLinesDict = salesOrder.Lines
+                        .ToDictionary(x => (x.ProductId, x.RowNumber));
 
-                    if (reservation.ReservedQty < deliveryLine.DeliveredQty)
-                        return Result.Failure("Reservation not enough");
+                    var reservationDict = reservations
+                        .ToDictionary(x => (x.ProductId, x.RowNumber));
 
-                    reservation.ReservedQty -= deliveryLine.DeliveredQty;
+                    var costLayerDict = costLayers
+                        .ToDictionary(x => x.Id);
 
-                    if (reservation.ReservedQty == 0)
-                        reservation.IsDeleted = true;
+                    int completedLines = 0;
+                    var journalEntryLines = new List<JournalEntryLine>();
 
-                    if (!costLayerDict.TryGetValue(reservation.LayerId, out var costLayer))
-                        throw new Exception($"Layer {reservation.LayerId} not found");
-
-                    if (costLayer.RemainingQty < deliveryLine.DeliveredQty)
-                        return Result.Failure($"Layer {reservation.LayerId} not enough stock");
-
-                    // Reduce layer
-                    costLayer.RemainingQty -= deliveryLine.DeliveredQty;
-                    costLayer.ReservedQty -= deliveryLine.DeliveredQty;
-
-                    // Update delivery line
-                    deliveryLine.UnitCost = costLayer.UnitCost;
-                    deliveryLine.CostLayerId = reservation.LayerId;
-
-                    // Ledger
-                    var ledger = new InventoryLedger
+                    foreach (var deliveryLine in delivery.Lines)
                     {
-                        ProductId = deliveryLine.ProductId,
-                        WarehouseId = costLayer.WarehouseId,
-                        TransactionType = InventoryTransactionType.Issue,
-                        ReferenceId = delivery.Id,
-                        ReferenceType = "Delivery",
-                        QuantityIn = 0,
-                        QuantityOut = deliveryLine.DeliveredQty,
-                        UnitCost = costLayer.UnitCost,
-                        TotalCost = deliveryLine.LineTotal
+                        var key = (deliveryLine.ProductId, deliveryLine.RowNumber);
+
+                        if (!salesOrderLinesDict.TryGetValue(key, out var salesOrderLine))
+                            return Result.Failure($"SalesOrderLine not found Product_{deliveryLine.ProductId} Row_{deliveryLine.RowNumber}");
+
+                        if (deliveryLine.DeliveredQty > salesOrderLine.RemainingQty)
+                            return Result.Failure($"Delivery qty greater than SalesOrder remaining qty");
+
+                        // Update SO line
+                        salesOrderLine.DeliveredQty += deliveryLine.DeliveredQty;
+
+                        if (salesOrderLine.DeliveredQty >= salesOrderLine.OrderedQty)
+                            completedLines++;
+
+                        if (!reservationDict.TryGetValue(key, out var reservation))
+                            return Result.Failure($"Reservation not found Product_{deliveryLine.ProductId} Row_{deliveryLine.RowNumber}");
+
+                        if (reservation.ReservedQty < deliveryLine.DeliveredQty)
+                            return Result.Failure("Reservation not enough");
+
+                        reservation.ReservedQty -= deliveryLine.DeliveredQty;
+
+                        if (reservation.ReservedQty == 0)
+                            reservation.IsDeleted = true;
+
+                        if (!costLayerDict.TryGetValue(reservation.LayerId, out var costLayer))
+                            throw new Exception($"Layer {reservation.LayerId} not found");
+
+                        if (costLayer.RemainingQty < deliveryLine.DeliveredQty)
+                            return Result.Failure($"Layer {reservation.LayerId} not enough stock");
+
+                        // Reduce layer
+                        costLayer.RemainingQty -= deliveryLine.DeliveredQty;
+                        costLayer.ReservedQty -= deliveryLine.DeliveredQty;
+
+                        // Update delivery line
+                        deliveryLine.UnitCost = costLayer.UnitCost;
+                        deliveryLine.CostLayerId = reservation.LayerId;
+
+                        // Ledger
+                        var ledger = new InventoryLedger
+                        {
+                            ProductId = deliveryLine.ProductId,
+                            WarehouseId = costLayer.WarehouseId,
+                            TransactionType = InventoryTransactionType.Issue,
+                            ReferenceId = delivery.Id,
+                            ReferenceType = "Delivery",
+                            QuantityIn = 0,
+                            QuantityOut = deliveryLine.DeliveredQty,
+                            UnitCost = costLayer.UnitCost,
+                            TotalCost = deliveryLine.LineTotal
+                        };
+
+                        await _unitOfWork.InventoryLedgerRepository.AddAsync(ledger);
+
+                        // Accounting
+                        var journalCOGS = new JournalEntryLine
+                        {
+                            AccountId = (int)AccountCode.COGS,
+                            Debit = deliveryLine.LineTotal,
+                            Credit = 0,
+                            Description = $"DEL:{id}: Product {deliveryLine.ProductId} * {deliveryLine.DeliveredQty}"
+                        };
+
+                        var journalInventory = new JournalEntryLine
+                        {
+                            AccountId = (int)AccountCode.Inventory,
+                            Debit = 0,
+                            Credit = deliveryLine.LineTotal,
+                            Description = $"DEL:{id}: Product {deliveryLine.ProductId} * {deliveryLine.DeliveredQty}"
+                        };
+
+                        journalEntryLines.Add(journalCOGS);
+                        journalEntryLines.Add(journalInventory);
+                    }
+
+                    // Update SO status
+                    if (completedLines == salesOrder.Lines.Count)
+                        salesOrder.Status = SalesOrderStatus.Completed;
+                    else
+                        salesOrder.Status = SalesOrderStatus.PartiallyDelivered;
+
+                    delivery.Status = DeliveryStatus.Posted;
+
+                    var journalEntry = new JournalEntry
+                    {
+                        Reference = delivery.OrderNumber,
+                        DeliveryId = delivery.Id,
+                        Lines = journalEntryLines
                     };
 
-                    await _unitOfWork.InventoryLedgerRepository.AddAsync(ledger);
+                    await _unitOfWork.JournalEntryRepository.AddAsync(journalEntry);
 
-                    // Accounting
-                    var journalCOGS = new JournalEntryLine
-                    {
-                        AccountId = (int)AccountCode.COGS,
-                        Debit = deliveryLine.LineTotal,
-                        Credit = 0,
-                        Description = $"DEL:{id}: Product {deliveryLine.ProductId} * {deliveryLine.DeliveredQty}"
-                    };
+                    await _unitOfWork.SaveChangesAsync(cancellationToken);
+                    await _unitOfWork.CommitTransactionAsync(cancellationToken);
 
-                    var journalInventory = new JournalEntryLine
-                    {
-                        AccountId = (int)AccountCode.Inventory,
-                        Debit = 0,
-                        Credit = deliveryLine.LineTotal,
-                        Description = $"DEL:{id}: Product {deliveryLine.ProductId} * {deliveryLine.DeliveredQty}"
-                    };
-
-                    journalEntryLines.Add(journalCOGS);
-                    journalEntryLines.Add(journalInventory);
+                    return Result.Success();
                 }
-
-                // Update SO status
-                if (completedLines == salesOrder.Lines.Count)
-                    salesOrder.Status = SalesOrderStatus.Completed;
-                else
-                    salesOrder.Status = SalesOrderStatus.PartiallyDelivered;
-
-                delivery.Status = DeliveryStatus.Posted;
-
-                var journalEntry = new JournalEntry
+                catch (DbUpdateConcurrencyException)
                 {
-                    Reference = delivery.OrderNumber,
-                    DeliveryId = delivery.Id,
-                    Lines = journalEntryLines
-                };
+                    await _unitOfWork.RollbackTransactionAsync(cancellationToken);
 
-                await _unitOfWork.JournalEntryRepository.AddAsync(journalEntry);
-
-                await _unitOfWork.SaveChangesAsync(cancellationToken);
-                await _unitOfWork.CommitTransactionAsync(cancellationToken);
-
-                return Result.Success();
+                    if (attempt == maxAttempts)
+                        return Result.Failure("Dữ liệu tồn kho/delivery đã thay đổi bởi giao dịch khác. Vui lòng thử post lại.");
+                }
+                catch (Exception ex)
+                {
+                    await _unitOfWork.RollbackTransactionAsync(cancellationToken);
+                    return Result.Failure(ex.Message);
+                }
             }
-            catch (Exception ex)
-            {
-                await _unitOfWork.RollbackTransactionAsync(cancellationToken);
-                return Result.Failure(ex.Message);
-            }
+
+            return Result.Failure("Dữ liệu tồn kho/delivery đã thay đổi bởi giao dịch khác. Vui lòng thử post lại.");
         }
 
         public async Task<Result> CancelAsync(int id, CancellationToken cancellationToken = default)
@@ -349,6 +378,7 @@ namespace InventorySystem.Application.Services
                 Status = entity.Status,
                 DeliveryDate = entity.DeliveryDate,
                 TotalAmount = entity.TotalAmount,
+                RowVersion = entity.RowVersion,
                 LinesDto = entity.Lines
                     .Select(l => new DeliveryLineDto
                     {

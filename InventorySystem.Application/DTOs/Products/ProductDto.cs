@@ -1,4 +1,4 @@
-﻿namespace InventorySystem.Application.DTOs.Products
+namespace InventorySystem.Application.DTOs.Products
 {
     public class ProductDto
     {
@@ -20,6 +20,8 @@
 
         public DateTime CreatedAt { get; init; }
         public DateTime? UpdatedAt { get; init; }
+
+        public byte[]? RowVersion { get; set; }
 
         public List<ProductConversionDto> ConversionDtos { get; set; } = new();
     }

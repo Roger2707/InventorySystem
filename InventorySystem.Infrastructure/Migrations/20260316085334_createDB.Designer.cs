@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace InventorySystem.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260313143156_createDB")]
+    [Migration("20260316085334_createDB")]
     partial class createDB
     {
         /// <inheritdoc />

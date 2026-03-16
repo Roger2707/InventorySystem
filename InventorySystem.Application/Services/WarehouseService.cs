@@ -4,6 +4,7 @@ using InventorySystem.Application.Interfaces;
 using InventorySystem.Application.Interfaces.Repositories;
 using InventorySystem.Domain.Common;
 using InventorySystem.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace InventorySystem.Application.Services;
 
@@ -82,6 +83,11 @@ public class WarehouseService : IWarehouseService
             return Result<WarehouseDto>.Failure($"Warehouse with ID {id} not found.");
         }
 
+        if (updateDto.RowVersion != null && warehouse.RowVersion != null)
+        {
+            warehouse.RowVersion = updateDto.RowVersion;
+        }
+
         // Check if warehouse code is being changed and if new code already exists
         if (warehouse.WarehouseCode != updateDto.WarehouseCode)
         {
@@ -94,7 +100,14 @@ public class WarehouseService : IWarehouseService
 
         MapToEntity(updateDto, warehouse);
         await _unitOfWork.WarehouseRepository.UpdateAsync(warehouse, cancellationToken);
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return Result<WarehouseDto>.Failure("Warehouse đã được cập nhật bởi người dùng khác. Vui lòng tải lại dữ liệu và thử lại.");
+        }
 
         var warehouseDto = MapToDto(warehouse);
         return Result<WarehouseDto>.Success(warehouseDto);
@@ -136,7 +149,8 @@ public class WarehouseService : IWarehouseService
             IsActive = warehouse.IsActive,
             Description = warehouse.Description,
             CreatedAt = warehouse.CreatedAt,
-            UpdatedAt = warehouse.UpdatedAt
+            UpdatedAt = warehouse.UpdatedAt,
+            RowVersion = warehouse.RowVersion
         };
     }
 

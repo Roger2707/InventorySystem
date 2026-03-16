@@ -1,11 +1,11 @@
-﻿using InventorySystem.Application.DTOs.SalesOrder;
+using InventorySystem.Application.DTOs.SalesOrder;
 using InventorySystem.Application.Interfaces.Generators;
 using InventorySystem.Application.Interfaces.Repositories;
 using InventorySystem.Application.Interfaces.Services;
 using InventorySystem.Domain.Common;
 using InventorySystem.Domain.Entities.Inventory;
-using InventorySystem.Domain.Entities.Products;
 using InventorySystem.Domain.Entities.SalesOrder;
+using Microsoft.EntityFrameworkCore;
 
 namespace InventorySystem.Application.Services
 {
@@ -132,6 +132,12 @@ namespace InventorySystem.Application.Services
 
                 #endregion
 
+                // Concurrency check: attach client RowVersion so EF can detect conflicts
+                if (updateSalesOrderDto.RowVersion != null && salesOrderExist.RowVersion != null)
+                {
+                    // This assignment tells EF which version the client thinks it is editing
+                    salesOrderExist.RowVersion = updateSalesOrderDto.RowVersion;
+                }
 
                 salesOrderExist.CustomerId = updateSalesOrderDto.CustomerId;
                 salesOrderExist.Lines.Clear();
@@ -154,9 +160,16 @@ namespace InventorySystem.Application.Services
                     rowNumber++;
                 }
 
-                await _unitOfWork.SaveChangesAsync(cancellationToken);
-
-                await _unitOfWork.CommitTransactionAsync(cancellationToken);
+                try
+                {
+                    await _unitOfWork.SaveChangesAsync(cancellationToken);
+                    await _unitOfWork.CommitTransactionAsync(cancellationToken);
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    await _unitOfWork.RollbackTransactionAsync(cancellationToken);
+                    return Result<SalesOrderDto>.Failure("SalesOrder đã được cập nhật bởi người dùng khác. Vui lòng tải lại dữ liệu và thử lại.");
+                }
 
                 var dto = MapToDto(salesOrderExist);
                 return Result<SalesOrderDto>.Success(dto);
@@ -200,98 +213,106 @@ namespace InventorySystem.Application.Services
 
         public async Task<Result> ConfirmAsync(int id, CancellationToken cancellationToken = default)
         {
-            try
+            const int maxAttempts = 3;
+
+            for (var attempt = 1; attempt <= maxAttempts; attempt++)
             {
-                await _unitOfWork.BeginTransactionAsync(cancellationToken);
-
-                var so = await _unitOfWork.SalesOrderRepository.GetWithLinesAsync(id, cancellationToken);
-                if (so == null)
-                    return Result.Failure($"SalesOrder with ID {id} not found.");
-
-                so.Confirm();
-
-                #region FIFO - Reservation 
-
-                int rowNumber = 1;
-                const decimal margin = 0.3m;
-                var salesOrderLinesSplit = new List<SalesOrderLine>();
-
-                foreach (var salesOrderLine in so.Lines)
+                try
                 {
-                    var layers = await _unitOfWork.InventoryCostLayerRepository.GetFIFOProductsById(salesOrderLine.ProductId);
+                    await _unitOfWork.BeginTransactionAsync(cancellationToken);
 
-                    if (layers == null || layers.Count == 0)
-                        throw new Exception($"Product {salesOrderLine.ProductId} not in inventory");
+                    var so = await _unitOfWork.SalesOrderRepository.GetWithLinesAsync(id, cancellationToken);
+                    if (so == null)
+                        return Result.Failure($"SalesOrder with ID {id} not found.");
 
-                    decimal remainingOrderedQty = salesOrderLine.OrderedQty;
-                    foreach (var layer in layers)
+                    so.Confirm();
+
+                    #region FIFO - Reservation
+
+                    int rowNumber = 1;
+                    const decimal margin = 0.3m;
+                    var salesOrderLinesSplit = new List<SalesOrderLine>();
+
+                    foreach (var salesOrderLine in so.Lines)
                     {
-                        if (remainingOrderedQty <= 0)
-                            break;
+                        var layers = await _unitOfWork.InventoryCostLayerRepository.GetFIFOProductsById(salesOrderLine.ProductId, cancellationToken);
 
-                        // When post SO, CostLayer just Reserve, that means not exactly minus quantity
-                        // so we have to re-calc available stock
-                        var available = layer.RemainingQty - layer.ReservedQty;
+                        if (layers == null || layers.Count == 0)
+                            throw new Exception($"Product {salesOrderLine.ProductId} not in inventory");
 
-                        // Move to the next layer
-                        if (available <= 0)
-                            continue;
-
-                        var takeQty = Math.Min(available, remainingOrderedQty);
-                        remainingOrderedQty -= takeQty;
-
-                        var sellingPrice = Math.Round(layer.UnitCost * (1 + margin), 2);
-
-                        // Overwrite lines (because 1 Product can have 2 UnitCost)
-                        salesOrderLinesSplit.Add(new SalesOrderLine
+                        decimal remainingOrderedQty = salesOrderLine.OrderedQty;
+                        foreach (var layer in layers)
                         {
-                            SalesOrderId = salesOrderLine.SalesOrderId,
-                            ProductId = salesOrderLine.ProductId,
-                            RowNumber = rowNumber,
+                            if (remainingOrderedQty <= 0)
+                                break;
 
-                            UnitPrice = sellingPrice,
-                            OrderedQty = takeQty,
-                        });
+                            var available = layer.RemainingQty - layer.ReservedQty;
+                            if (available <= 0)
+                                continue;
 
-                        var reservation = new InventoryReservation
-                        {
-                            LayerId = layer.Id,
-                            ProductId = salesOrderLine.ProductId,
-                            SourceId = so.Id,
-                            RowNumber = rowNumber,
-                            ReservedQty = takeQty,
-                            UnitCost = layer.UnitCost
-                        };
-                        await _unitOfWork.InventoryReservationRepository.AddAsync(reservation);
+                            var takeQty = Math.Min(available, remainingOrderedQty);
+                            remainingOrderedQty -= takeQty;
 
-                        layer.ReservedQty += takeQty;
-                        rowNumber++;
+                            var sellingPrice = Math.Round(layer.UnitCost * (1 + margin), 2);
+
+                            salesOrderLinesSplit.Add(new SalesOrderLine
+                            {
+                                SalesOrderId = salesOrderLine.SalesOrderId,
+                                ProductId = salesOrderLine.ProductId,
+                                RowNumber = rowNumber,
+                                UnitPrice = sellingPrice,
+                                OrderedQty = takeQty,
+                            });
+
+                            var reservation = new InventoryReservation
+                            {
+                                LayerId = layer.Id,
+                                ProductId = salesOrderLine.ProductId,
+                                SourceId = so.Id,
+                                RowNumber = rowNumber,
+                                ReservedQty = takeQty,
+                                UnitCost = layer.UnitCost
+                            };
+                            await _unitOfWork.InventoryReservationRepository.AddAsync(reservation);
+
+                            layer.ReservedQty += takeQty;
+                            rowNumber++;
+                        }
+
+                        if (remainingOrderedQty > 0)
+                            throw new Exception($"Not enough stock for product {salesOrderLine.ProductId}");
                     }
 
-                    if (remainingOrderedQty > 0)
-                        throw new Exception($"Not enough stock for product {salesOrderLine.ProductId}");
+                    #endregion
+
+                    #region Re-check SalesOrder
+
+                    so.Lines.Clear();
+                    foreach (var split in salesOrderLinesSplit)
+                        so.Lines.Add(split);
+
+                    #endregion
+
+                    await _unitOfWork.SaveChangesAsync(cancellationToken);
+                    await _unitOfWork.CommitTransactionAsync(cancellationToken);
+
+                    return Result.Success();
                 }
+                catch (DbUpdateConcurrencyException)
+                {
+                    await _unitOfWork.RollbackTransactionAsync(cancellationToken);
 
-                #endregion
-
-                #region Re - check SalesOrder
-
-                so.Lines.Clear();
-                foreach(var split in salesOrderLinesSplit)
-                    so.Lines.Add(split);
-
-                #endregion
-
-                await _unitOfWork.SaveChangesAsync(cancellationToken);
-                await _unitOfWork.CommitTransactionAsync(cancellationToken);
-
-                return Result.Success();
+                    if (attempt == maxAttempts)
+                        return Result.Failure("Tồn kho hoặc SalesOrder đã được thay đổi bởi giao dịch khác trong lúc confirm. Vui lòng thử confirm lại.");
+                }
+                catch (Exception ex)
+                {
+                    await _unitOfWork.RollbackTransactionAsync(cancellationToken);
+                    return Result.Failure(ex.Message);
+                }
             }
-            catch(Exception ex)
-            {
-                await _unitOfWork.RollbackTransactionAsync(cancellationToken);
-                return Result.Failure(ex.Message);
-            }         
+
+            return Result.Failure("Tồn kho hoặc SalesOrder đã được thay đổi bởi giao dịch khác trong lúc confirm. Vui lòng thử confirm lại.");
         }
 
         #region Helpers

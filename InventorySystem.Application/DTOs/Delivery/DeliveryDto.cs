@@ -1,4 +1,4 @@
-﻿using InventorySystem.Domain.Enums;
+using InventorySystem.Domain.Enums;
 
 namespace InventorySystem.Application.DTOs.Delivery
 {
@@ -10,6 +10,9 @@ namespace InventorySystem.Application.DTOs.Delivery
         public DateTime DeliveryDate { get; set; }
         public DeliveryStatus Status { get; set; }
         public decimal TotalAmount { get; set; }
+
+        public byte[]? RowVersion { get; set; }
+
         public List<DeliveryLineDto> LinesDto { get; set; } = new();
     }
 

@@ -12,6 +12,8 @@ public class PurchaseOrderDto
     public DateTime? ApprovedDate { get; set; }
     public decimal TotalAmount { get; set; }
 
+    public byte[]? RowVersion { get; set; }
+
     public List<PurchaseOrderLineDto> Lines { get; set; } = new();
 }
 

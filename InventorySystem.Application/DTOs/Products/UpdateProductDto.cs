@@ -1,7 +1,9 @@
-﻿namespace InventorySystem.Application.DTOs.Products
+namespace InventorySystem.Application.DTOs.Products
 {
     public class UpdateProductDto
     {
+        public byte[]? RowVersion { get; set; }
+
         public string Name { get; init; }
         public int CategoryId { get; set; }
         public int BaseUoMId { get; set; }

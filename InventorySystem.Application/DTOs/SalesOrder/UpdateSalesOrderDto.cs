@@ -1,8 +1,12 @@
-﻿namespace InventorySystem.Application.DTOs.SalesOrder
+namespace InventorySystem.Application.DTOs.SalesOrder
 {
     public class UpdateSalesOrderDto
     {
         public int CustomerId { get; set; }
+
+        // Concurrency token from client (taken from SalesOrderDto.RowVersion)
+        public byte[]? RowVersion { get; set; }
+
         public List<UpdateSalesOrderLineDto> UpdateLinesDto { get; set; } = new();
     }
 

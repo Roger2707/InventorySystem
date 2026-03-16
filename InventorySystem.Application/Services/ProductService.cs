@@ -1,4 +1,4 @@
-﻿using InventorySystem.Application.Common.Pagination;
+using InventorySystem.Application.Common.Pagination;
 using InventorySystem.Application.DTOs.Products;
 using InventorySystem.Application.Interfaces.Generators;
 using InventorySystem.Application.Interfaces.Queries;
@@ -6,6 +6,7 @@ using InventorySystem.Application.Interfaces.Repositories;
 using InventorySystem.Application.Interfaces.Services;
 using InventorySystem.Domain.Common;
 using InventorySystem.Domain.Entities.Products;
+using Microsoft.EntityFrameworkCore;
 
 namespace InventorySystem.Application.Services
 {
@@ -103,6 +104,12 @@ namespace InventorySystem.Application.Services
             {
                 return Result<ProductDto>.Failure($"Product with ID {id} not found.");
             }
+
+            if (updateProductDto.RowVersion != null && existedProduct.RowVersion != null)
+            {
+                existedProduct.RowVersion = updateProductDto.RowVersion;
+            }
+
             existedProduct.Name = updateProductDto.Name;
             existedProduct.CategoryId = updateProductDto.CategoryId;
             existedProduct.BaseUoMId = updateProductDto.BaseUoMId;
@@ -119,7 +126,14 @@ namespace InventorySystem.Application.Services
                     Factor = dto.Factor
                 });
             }
-            await _unitOfWork.SaveChangesAsync();
+            try
+            {
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                return Result<ProductDto>.Failure("Product đã được cập nhật bởi người dùng khác. Vui lòng tải lại dữ liệu và thử lại.");
+            }
 
             var productDto = MapToDto(existedProduct);
             return Result<ProductDto>.Success(productDto);
@@ -215,7 +229,8 @@ namespace InventorySystem.Application.Services
                 IsPerishable = product.IsPerishable,
                 IsActive = product.IsActive,
                 CreatedAt = product.CreatedAt,
-                UpdatedAt = product.UpdatedAt
+                UpdatedAt = product.UpdatedAt,
+                RowVersion = product.RowVersion
             };
         }
 

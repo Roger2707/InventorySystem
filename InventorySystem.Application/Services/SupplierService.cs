@@ -1,8 +1,9 @@
-﻿using InventorySystem.Application.DTOs.Suppliers;
+using InventorySystem.Application.DTOs.Suppliers;
 using InventorySystem.Application.Interfaces;
 using InventorySystem.Application.Interfaces.Repositories;
 using InventorySystem.Domain.Common;
 using InventorySystem.Domain.Entities.Suppliers;
+using Microsoft.EntityFrameworkCore;
 
 namespace InventorySystem.Application.Services
 {
@@ -69,6 +70,11 @@ namespace InventorySystem.Application.Services
                 return Result<SupplierDto>.Failure($"Supplier with ID {id} not found.");
             }
 
+            if (updateDto.RowVersion != null && supplier.RowVersion != null)
+            {
+                supplier.RowVersion = updateDto.RowVersion;
+            }
+
             // Check if Supplier code is being changed and if new code already exists
             if (supplier.SupplierCode != updateDto.SupplierCode)
             {
@@ -81,7 +87,14 @@ namespace InventorySystem.Application.Services
 
             MapToEntity(updateDto, supplier);
             await _unitOfWork.SupplierRepository.UpdateAsync(supplier, cancellationToken);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            try
+            {
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                return Result<SupplierDto>.Failure("Supplier đã được cập nhật bởi người dùng khác. Vui lòng tải lại dữ liệu và thử lại.");
+            }
 
             var supplierDto = MapToDto(supplier);
             return Result<SupplierDto>.Success(supplierDto);
@@ -140,7 +153,8 @@ namespace InventorySystem.Application.Services
                 IsActive = supplier.IsActive,
                 Description = supplier.Description,
                 CreatedAt = supplier.CreatedAt,
-                UpdatedAt = supplier.UpdatedAt
+                UpdatedAt = supplier.UpdatedAt,
+                RowVersion = supplier.RowVersion
             };
         }
 

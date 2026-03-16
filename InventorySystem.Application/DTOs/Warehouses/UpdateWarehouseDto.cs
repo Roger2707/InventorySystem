@@ -4,6 +4,8 @@ namespace InventorySystem.Application.DTOs.Warehouses;
 
 public class UpdateWarehouseDto
 {
+    public byte[]? RowVersion { get; set; }
+
     [Required]
     [StringLength(20, MinimumLength = 1)]
     public string WarehouseCode { get; set; } = string.Empty;

@@ -4,6 +4,8 @@ namespace InventorySystem.Application.DTOs.Customers;
 
 public class UpdateCustomerDto
 {
+    public byte[]? RowVersion { get; set; }
+
     [Required]
     [StringLength(20, MinimumLength = 1)]
     public string CustomerCode { get; set; } = string.Empty;

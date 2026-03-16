@@ -6,6 +6,7 @@ using InventorySystem.Application.Interfaces.Services;
 using InventorySystem.Domain.Common;
 using InventorySystem.Domain.Entities.PurchaseOrder;
 using InventorySystem.Domain.Enums;
+using Microsoft.EntityFrameworkCore;
 
 namespace InventorySystem.Application.Services;
 
@@ -89,6 +90,11 @@ public class PurchaseOrderService : IPurchaseOrderService
         if (exist == null)
             return Result<PurchaseOrderDto>.Failure($"PurchaseOrder with ID {id} not found.");
 
+        if (updatePurchaseOrder.RowVersion != null && exist.RowVersion != null)
+        {
+            exist.RowVersion = updatePurchaseOrder.RowVersion;
+        }
+
         var lineParams = new List<(int ProductId, decimal OrderedQty, decimal UnitPrice)>();
         foreach (var line in updatePurchaseOrder.LinesDto)
         {
@@ -105,7 +111,14 @@ public class PurchaseOrderService : IPurchaseOrderService
             updatePurchaseOrder.OrderDate,
             lineParams.Select(l => (CF.GetInt(l.ProductId), CF.GetDecimal(l.OrderedQty), CF.GetDecimal(l.UnitPrice))).ToList());
 
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return Result<PurchaseOrderDto>.Failure("PurchaseOrder đã được cập nhật bởi người dùng khác. Vui lòng tải lại dữ liệu và thử lại.");
+        }
 
         return Result<PurchaseOrderDto>.Success(MapToDto(exist));
     }
@@ -121,7 +134,14 @@ public class PurchaseOrderService : IPurchaseOrderService
 
         // After approve, we have to create goods_receipt
 
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return Result<PurchaseOrderDto>.Failure("PurchaseOrder đã được thay đổi bởi giao dịch khác. Vui lòng tải lại và thử lại.");
+        }
 
         var dto = MapToDto(po);
         return Result<PurchaseOrderDto>.Success(dto);
@@ -158,6 +178,7 @@ public class PurchaseOrderService : IPurchaseOrderService
             OrderDate = entity.OrderDate,
             ApprovedDate = entity.ApprovedDate,
             TotalAmount = entity.TotalAmount,
+            RowVersion = entity.RowVersion,
             Lines = entity.Lines?.Select(l => new PurchaseOrderLineDto
             {
                 PurchaseOrderId = l.PurchaseOrderId,

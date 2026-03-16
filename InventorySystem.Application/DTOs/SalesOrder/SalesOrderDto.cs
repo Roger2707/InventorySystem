@@ -1,4 +1,4 @@
-﻿using InventorySystem.Domain.Enums;
+using InventorySystem.Domain.Enums;
 
 namespace InventorySystem.Application.DTOs.SalesOrder
 {
@@ -11,6 +11,10 @@ namespace InventorySystem.Application.DTOs.SalesOrder
         public DateTime OrderDate { get; set; }
         public SalesOrderStatus Status { get; set; }
         public decimal TotalAmount { get; set; }
+
+        // Concurrency token so client can send back when updating
+        public byte[]? RowVersion { get; set; }
+
         public List<SalesOrderLineDto> LinesDto { get; set; } = new();
     }
 

@@ -8,6 +8,7 @@ using InventorySystem.Domain.Entities.Accounts;
 using InventorySystem.Domain.Entities.GoodsReceipt;
 using InventorySystem.Domain.Entities.Inventory;
 using InventorySystem.Domain.Enums;
+using Microsoft.EntityFrameworkCore;
 
 namespace InventorySystem.Application.Services;
 
@@ -109,6 +110,11 @@ public class GoodsReceiptService : IGoodsReceiptService
         if (exist == null)
             return Result<GoodsReceiptDto>.Failure($"GoodsReceipt with ID {id} not found.");
 
+        if (updateGoodsReceipt.RowVersion != null && exist.RowVersion != null)
+        {
+            exist.RowVersion = updateGoodsReceipt.RowVersion;
+        }
+
         var poExist = await _unitOfWork.PurchaseOrderRepository.GetWithLinesAsync(exist.PurchaseOrderId, cancellationToken);
         if (poExist == null)
             return Result<GoodsReceiptDto>.Failure($"PurchaseOrder with ID {exist.PurchaseOrderId} not found.");
@@ -137,7 +143,14 @@ public class GoodsReceiptService : IGoodsReceiptService
             lineParams
         );
 
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return Result<GoodsReceiptDto>.Failure("GoodsReceipt đã được cập nhật bởi người dùng khác. Vui lòng tải lại dữ liệu và thử lại.");
+        }
         var dto = MapToDto(exist);
         return Result<GoodsReceiptDto>.Success(dto);
     }
@@ -159,129 +172,143 @@ public class GoodsReceiptService : IGoodsReceiptService
 
     public async Task<Result> PostAsync(int id, CancellationToken cancellationToken = default)
     {
-        try
+        const int maxAttempts = 3;
+
+        for (var attempt = 1; attempt <= maxAttempts; attempt++)
         {
-            await _unitOfWork.BeginTransactionAsync(cancellationToken);
-
-            var goodsReceiptExist = await _unitOfWork.GoodsReceiptRepository.GetWithLinesAsync(id, cancellationToken);
-            if (goodsReceiptExist == null)
-                return Result.Failure($"GoodsReceipt with Id: {id} is not existed");
-
-            var purchaseOrder = await _unitOfWork.PurchaseOrderRepository.GetWithLinesAsync(goodsReceiptExist.PurchaseOrderId);
-            if (purchaseOrder == null)
-                return Result.Failure($"PurchaseOrder with Id: {goodsReceiptExist.PurchaseOrderId} is not existed");
-
-            if (purchaseOrder.Status == PurchaseOrderStatus.Draft)
-                return Result.Failure($"PurchaseOrder is not Approved !");
-
-            if (purchaseOrder.Status == PurchaseOrderStatus.Completed)
-                return Result.Failure($"PurchaseOrder is already completed !");
-
-            if (purchaseOrder.Status == PurchaseOrderStatus.Cancelled)
-                return Result.Failure($"PurchaseOrder is Cancelled !");
-
-            goodsReceiptExist.Post();
-
-            int countLineComplete = 0;
-            var journalEntryLines = new List<JournalEntryLine>();
-
-            foreach (var line in goodsReceiptExist.Lines)
+            try
             {
-                var purchaseLine = purchaseOrder.Lines.FirstOrDefault(l => l.ProductId == line.ProductId);
+                await _unitOfWork.BeginTransactionAsync(cancellationToken);
 
-                if (purchaseLine == null)
-                    throw new Exception("PurchaseOrderLine not found !");
+                var goodsReceiptExist = await _unitOfWork.GoodsReceiptRepository.GetWithLinesAsync(id, cancellationToken);
+                if (goodsReceiptExist == null)
+                    return Result.Failure($"GoodsReceipt with Id: {id} is not existed");
 
-                if (purchaseLine.ReceivedQty == purchaseLine.OrderedQty)
-                    throw new Exception("This Purchase has complete");
+                var purchaseOrder = await _unitOfWork.PurchaseOrderRepository.GetWithLinesAsync(goodsReceiptExist.PurchaseOrderId, cancellationToken);
+                if (purchaseOrder == null)
+                    return Result.Failure($"PurchaseOrder with Id: {goodsReceiptExist.PurchaseOrderId} is not existed");
 
-                decimal pol_OrderedQty = purchaseLine.OrderedQty;
-                decimal pol_ReceivedQty = purchaseLine.ReceivedQty;
-                decimal remaining = pol_OrderedQty - pol_ReceivedQty;
+                if (purchaseOrder.Status == PurchaseOrderStatus.Draft)
+                    return Result.Failure($"PurchaseOrder is not Approved !");
 
-                if (remaining < line.ReceivedQty)
-                    throw new Exception("Exceed !");
+                if (purchaseOrder.Status == PurchaseOrderStatus.Completed)
+                    return Result.Failure($"PurchaseOrder is already completed !");
 
-                // Update quantity PurchaseOrderLine
-                purchaseLine.ReceivedQty += line.ReceivedQty;
+                if (purchaseOrder.Status == PurchaseOrderStatus.Cancelled)
+                    return Result.Failure($"PurchaseOrder is Cancelled !");
 
-                if (purchaseLine.ReceivedQty == pol_OrderedQty)
-                    countLineComplete++;
+                goodsReceiptExist.Post();
 
-                // Import into CostLayer
-                var costLayer = new InventoryCostLayer
+                int countLineComplete = 0;
+                var journalEntryLines = new List<JournalEntryLine>();
+
+                foreach (var line in goodsReceiptExist.Lines)
                 {
+                    var purchaseLine = purchaseOrder.Lines.FirstOrDefault(l => l.ProductId == line.ProductId);
+
+                    if (purchaseLine == null)
+                        throw new Exception("PurchaseOrderLine not found !");
+
+                    if (purchaseLine.ReceivedQty == purchaseLine.OrderedQty)
+                        throw new Exception("This Purchase has complete");
+
+                    decimal pol_OrderedQty = purchaseLine.OrderedQty;
+                    decimal pol_ReceivedQty = purchaseLine.ReceivedQty;
+                    decimal remaining = pol_OrderedQty - pol_ReceivedQty;
+
+                    if (remaining < line.ReceivedQty)
+                        throw new Exception("Exceed !");
+
+                    // Update quantity PurchaseOrderLine
+                    purchaseLine.ReceivedQty += line.ReceivedQty;
+
+                    if (purchaseLine.ReceivedQty == pol_OrderedQty)
+                        countLineComplete++;
+
+                    // Import into CostLayer
+                    var costLayer = new InventoryCostLayer
+                    {
+                        GoodsReceiptId = goodsReceiptExist.Id,
+                        ProductId = line.ProductId,
+                        WarehouseId = goodsReceiptExist.WarehouseId,
+                        OriginalQty = line.ReceivedQty,
+                        RemainingQty = line.ReceivedQty,
+                        UnitCost = line.UnitCost,
+                        ReceiptDate = goodsReceiptExist.ReceiptDate,
+                    };
+
+                    await _unitOfWork.InventoryCostLayerRepository.AddAsync(costLayer, cancellationToken);
+
+                    // Create History Transaction
+                    var ledger = new InventoryLedger
+                    {
+                        ProductId = line.ProductId,
+                        WarehouseId = goodsReceiptExist.WarehouseId,
+                        TransactionType = InventoryTransactionType.Receipt,
+                        ReferenceId = goodsReceiptExist.Id,
+                        ReferenceType = "GoodsReceipt",
+                        QuantityIn = line.ReceivedQty,
+                        QuantityOut = 0,
+                        UnitCost = line.UnitCost,
+                        TotalCost = line.ReceivedQty * line.UnitCost,
+                        TransactionDate = goodsReceiptExist.ReceiptDate
+                    };
+
+                    await _unitOfWork.InventoryLedgerRepository.AddAsync(ledger, cancellationToken);
+
+                    // Insert JournalEntry
+                    var journalEntryLine = new JournalEntryLine
+                    {
+                        AccountId = (int)AccountCode.Inventory,
+                        Debit = line.LineTotal,
+                        Credit = 0,
+                        Description = $"GR:{id}: Product: {line.ProductId} * {line.ReceivedQty}"
+                    };
+                    journalEntryLines.Add(journalEntryLine);
+                }
+
+                // Update PurchaseOrder_Status
+                if (countLineComplete == purchaseOrder.Lines.Count)
+                    purchaseOrder.Status = PurchaseOrderStatus.Completed;
+                else
+                    purchaseOrder.Status = PurchaseOrderStatus.PartiallyReceived;
+
+                // Create JournalEntry
+                var creditLine = new JournalEntryLine
+                {
+                    AccountId = (int)AccountCode.Cash, // Cash
+                    Credit = journalEntryLines.Sum(x => x.Debit),
+                };
+                journalEntryLines.Add(creditLine);
+                var journalEntry = new JournalEntry
+                {
+                    Reference = goodsReceiptExist.ReceiptNumber,
                     GoodsReceiptId = goodsReceiptExist.Id,
-                    ProductId = line.ProductId,
-                    WarehouseId = goodsReceiptExist.WarehouseId,
-                    OriginalQty = line.ReceivedQty,
-                    RemainingQty = line.ReceivedQty,
-                    UnitCost = line.UnitCost,
-                    ReceiptDate = goodsReceiptExist.ReceiptDate,
+                    Lines = journalEntryLines
                 };
+                await _unitOfWork.JournalEntryRepository.AddAsync(journalEntry, cancellationToken);
 
-                await _unitOfWork.InventoryCostLayerRepository.AddAsync(costLayer);
+                // SaveChange
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+                await _unitOfWork.CommitTransactionAsync(cancellationToken);
 
-                // Create History Transaction
-                var ledger = new InventoryLedger
-                {
-                    ProductId = line.ProductId,
-                    WarehouseId = goodsReceiptExist.WarehouseId,
-                    TransactionType = InventoryTransactionType.Receipt,
-                    ReferenceId = goodsReceiptExist.Id,
-                    ReferenceType = "GoodsReceipt",
-                    QuantityIn = line.ReceivedQty,
-                    QuantityOut = 0,
-                    UnitCost = line.UnitCost,
-                    TotalCost = line.ReceivedQty * line.UnitCost,
-                    TransactionDate = goodsReceiptExist.ReceiptDate
-                };
-
-                await _unitOfWork.InventoryLedgerRepository.AddAsync(ledger);
-
-                // Insert JournalEntry
-                var journalEntryLine = new JournalEntryLine
-                {
-                    AccountId = (int)AccountCode.Inventory,
-                    Debit = line.LineTotal,
-                    Credit = 0,
-                    Description = $"GR:{id}: Product: {line.ProductId} * {line.ReceivedQty}"
-                };
-                journalEntryLines.Add(journalEntryLine);             
+                return Result.Success();
             }
-
-            // Update PurchaseOrder_Status
-            if (countLineComplete == purchaseOrder.Lines.Count)
-                purchaseOrder.Status = PurchaseOrderStatus.Completed;
-            else
-                purchaseOrder.Status = PurchaseOrderStatus.PartiallyReceived;
-
-            // Create JournalEntry
-            var creditLine = new JournalEntryLine
+            catch (DbUpdateConcurrencyException)
             {
-                AccountId = (int)AccountCode.Cash, // Cash
-                Credit = journalEntryLines.Sum(x => x.Debit),
-            };
-            journalEntryLines.Add(creditLine);
-            var journalEntry = new JournalEntry
+                await _unitOfWork.RollbackTransactionAsync(cancellationToken);
+
+                if (attempt == maxAttempts)
+                    return Result.Failure("Dữ liệu GoodsReceipt/PurchaseOrder đã thay đổi bởi giao dịch khác. Vui lòng thử post lại.");
+            }
+            catch (Exception ex)
             {
-                Reference = goodsReceiptExist.ReceiptNumber,
-                GoodsReceiptId = goodsReceiptExist.Id,
-                Lines = journalEntryLines
-            };
-            await _unitOfWork.JournalEntryRepository.AddAsync(journalEntry);
-
-            // SaveChange
-            await _unitOfWork.SaveChangesAsync();
-            await _unitOfWork.CommitTransactionAsync(cancellationToken);
-
-            return Result.Success();
+                await _unitOfWork.RollbackTransactionAsync(cancellationToken);
+                return Result.Failure(ex.Message);
+            }
         }
-        catch (Exception ex)
-        {
-            await _unitOfWork.RollbackTransactionAsync(cancellationToken);
-            return Result.Failure(ex.Message);
-        }       
+
+        return Result.Failure("Dữ liệu GoodsReceipt/PurchaseOrder đã thay đổi bởi giao dịch khác. Vui lòng thử post lại.");
     }
 
     public Task<Result> CancelAsync(int id, CancellationToken cancellationToken = default)
@@ -309,6 +336,7 @@ public class GoodsReceiptService : IGoodsReceiptService
             WarehouseId = entity.WarehouseId,
             Status = entity.Status,
             ReceiptDate = entity.ReceiptDate,
+            RowVersion = entity.RowVersion,
             Lines = entity.Lines?.Select(l => new GoodsReceiptLineDto
             {
                 GoodsReceiptId = l.GoodsReceiptId,

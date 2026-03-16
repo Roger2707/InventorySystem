@@ -1,4 +1,4 @@
-﻿namespace InventorySystem.Application.DTOs.Suppliers
+namespace InventorySystem.Application.DTOs.Suppliers
 {
     public class SupplierDto
     {
@@ -11,5 +11,7 @@
         public string Description { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
+
+        public byte[]? RowVersion { get; set; }
     }
 }

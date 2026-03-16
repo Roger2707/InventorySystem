@@ -1,8 +1,9 @@
-﻿namespace InventorySystem.Application.DTOs.GoodsReceipts
+namespace InventorySystem.Application.DTOs.GoodsReceipts
 {
     public class UpdateGoodsReceiptDto
     {
         public int WarehouseId { get; set; }
+        public byte[]? RowVersion { get; set; }
         public List<UpdateGoodsReceiptLineDto> LinesDto { get; set; }
     }
 

@@ -1,7 +1,9 @@
-﻿namespace InventorySystem.Application.DTOs.Delivery
+namespace InventorySystem.Application.DTOs.Delivery
 {
     public class UpdateDeliveryDto
     {
+        public byte[]? RowVersion { get; set; }
+
         public List<UpdateDeliveryLineDto> LinesDto { get; set; } = new();
     }
 

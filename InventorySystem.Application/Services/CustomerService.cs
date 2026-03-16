@@ -1,8 +1,9 @@
-﻿using InventorySystem.Application.DTOs.Customers;
+using InventorySystem.Application.DTOs.Customers;
 using InventorySystem.Application.Interfaces;
 using InventorySystem.Application.Interfaces.Repositories;
 using InventorySystem.Domain.Common;
 using InventorySystem.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace InventorySystem.Application.Services
 {
@@ -69,6 +70,11 @@ namespace InventorySystem.Application.Services
                 return Result<CustomerDto>.Failure($"Customer with ID {id} not found.");
             }
 
+            if (updateDto.RowVersion != null && customer.RowVersion != null)
+            {
+                customer.RowVersion = updateDto.RowVersion;
+            }
+
             // Check if customer code is being changed and if new code already exists
             if (customer.CustomerCode != updateDto.CustomerCode)
             {
@@ -81,7 +87,14 @@ namespace InventorySystem.Application.Services
 
             MapToEntity(updateDto, customer);
             await _unitOfWork.CustomerRepository.UpdateAsync(customer, cancellationToken);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            try
+            {
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                return Result<CustomerDto>.Failure("Customer đã được cập nhật bởi người dùng khác. Vui lòng tải lại dữ liệu và thử lại.");
+            }
 
             var customerDto = MapToDto(customer);
             return Result<CustomerDto>.Success(customerDto);
@@ -140,7 +153,8 @@ namespace InventorySystem.Application.Services
                 IsActive = customer.IsActive,
                 Description = customer.Description,
                 CreatedAt = customer.CreatedAt,
-                UpdatedAt = customer.UpdatedAt
+                UpdatedAt = customer.UpdatedAt,
+                RowVersion = customer.RowVersion
             };
         }
 

@@ -1,4 +1,4 @@
-﻿using InventorySystem.Application.DTOs.Invoices;
+using InventorySystem.Application.DTOs.Invoices;
 using InventorySystem.Application.Interfaces.Generators;
 using InventorySystem.Application.Interfaces.Repositories;
 using InventorySystem.Application.Interfaces.Services;
@@ -7,6 +7,7 @@ using InventorySystem.Domain.Entities.Accounts;
 using InventorySystem.Domain.Entities.Delivery;
 using InventorySystem.Domain.Entities.Invoice;
 using InventorySystem.Domain.Enums;
+using Microsoft.EntityFrameworkCore;
 
 namespace InventorySystem.Application.Services
 {
@@ -130,63 +131,77 @@ namespace InventorySystem.Application.Services
 
         public async Task<Result> PostAsync(int id, CancellationToken cancellationToken = default)
         {
-            try
+            const int maxAttempts = 3;
+
+            for (var attempt = 1; attempt <= maxAttempts; attempt++)
             {
-                await _unitOfWork.BeginTransactionAsync(cancellationToken);
-
-                var invoice = await _unitOfWork.InvoiceRepository.GetWithLinesAsync(id, cancellationToken);
-                if (invoice == null)
-                    return Result.Failure($"Invoice {id} is not existed !");
-
-                if (invoice.Status != InvoiceStatus.Draft)
-                    return Result.Failure($"Invoice {id} is not DRAFT Status !");
-
-                var invoiceNumber = await _invoiceGenerator.GenerateAsync(cancellationToken);
-                invoice.Status = InvoiceStatus.Posted;
-                invoice.InvoiceNumber = invoiceNumber;
-
-                var journalEntryLines = new List<JournalEntryLine>();
-                journalEntryLines.Add(new JournalEntryLine
+                try
                 {
-                    AccountId = (int)AccountCode.AccountsReceivable,
-                    Debit = invoice.TotalAmount,
-                    Credit = 0,
-                    Description = $"INV:{invoice.InvoiceNumber}"
-                });
-                foreach (InvoiceLine line in invoice.Lines)
-                {
+                    await _unitOfWork.BeginTransactionAsync(cancellationToken);
+
+                    var invoice = await _unitOfWork.InvoiceRepository.GetWithLinesAsync(id, cancellationToken);
+                    if (invoice == null)
+                        return Result.Failure($"Invoice {id} is not existed !");
+
+                    if (invoice.Status != InvoiceStatus.Draft)
+                        return Result.Failure($"Invoice {id} is not DRAFT Status !");
+
+                    var invoiceNumber = await _invoiceGenerator.GenerateAsync(cancellationToken);
+                    invoice.Status = InvoiceStatus.Posted;
+                    invoice.InvoiceNumber = invoiceNumber;
+
+                    var journalEntryLines = new List<JournalEntryLine>();
                     journalEntryLines.Add(new JournalEntryLine
                     {
-                        AccountId = (int)AccountCode.Revenue,
-                        Debit = 0,
-                        Credit = line.LineTotal,
-                        Description = $"INV:{id}: Product: {line.ProductId} * {line.Quantity}"
+                        AccountId = (int)AccountCode.AccountsReceivable,
+                        Debit = invoice.TotalAmount,
+                        Credit = 0,
+                        Description = $"INV:{invoice.InvoiceNumber}"
                     });
+                    foreach (InvoiceLine line in invoice.Lines)
+                    {
+                        journalEntryLines.Add(new JournalEntryLine
+                        {
+                            AccountId = (int)AccountCode.Revenue,
+                            Debit = 0,
+                            Credit = line.LineTotal,
+                            Description = $"INV:{id}: Product: {line.ProductId} * {line.Quantity}"
+                        });
+                    }
+
+                    var journalEntry = new JournalEntry
+                    {
+                        Reference = invoice.InvoiceNumber,
+                        InvoiceId = invoice.Id,
+                        Lines = journalEntryLines
+                    };
+                    await _unitOfWork.JournalEntryRepository.AddAsync(journalEntry);
+
+                    var totalDebit = journalEntryLines.Sum(x => x.Debit);
+                    var totalCredit = journalEntryLines.Sum(x => x.Credit);
+
+                    if (totalDebit != totalCredit)
+                        throw new Exception("Journal not balanced");
+
+                    await _unitOfWork.SaveChangesAsync(cancellationToken);
+                    await _unitOfWork.CommitTransactionAsync(cancellationToken);
+                    return Result.Success();
                 }
-
-                var journalEntry = new JournalEntry
+                catch (DbUpdateConcurrencyException)
                 {
-                    Reference = invoice.InvoiceNumber,
-                    InvoiceId = invoice.Id,
-                    Lines = journalEntryLines
-                };
-                await _unitOfWork.JournalEntryRepository.AddAsync(journalEntry);
+                    await _unitOfWork.RollbackTransactionAsync(cancellationToken);
 
-                var totalDebit = journalEntryLines.Sum(x => x.Debit);
-                var totalCredit = journalEntryLines.Sum(x => x.Credit);
-
-                if (totalDebit != totalCredit)
-                    throw new Exception("Journal not balanced");
-
-                await _unitOfWork.SaveChangesAsync(cancellationToken);
-                await _unitOfWork.CommitTransactionAsync(cancellationToken);
-                return Result.Success();
+                    if (attempt == maxAttempts)
+                        return Result.Failure("Invoice đã được thay đổi bởi giao dịch khác. Vui lòng tải lại và thử post lại.");
+                }
+                catch (Exception ex)
+                {
+                    await _unitOfWork.RollbackTransactionAsync(cancellationToken);
+                    return Result.Failure(ex.Message);
+                }
             }
-            catch (Exception ex)
-            {
-                await _unitOfWork.RollbackTransactionAsync(cancellationToken);
-                return Result.Failure(ex.Message);
-            }
+
+            return Result.Failure("Invoice đã được thay đổi bởi giao dịch khác. Vui lòng tải lại và thử post lại.");
             
         }
 

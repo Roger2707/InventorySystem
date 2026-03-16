@@ -1,9 +1,11 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace InventorySystem.Application.DTOs.Suppliers
 {
     public class UpdateSupplierDto
     {
+        public byte[]? RowVersion { get; set; }
+
         [Required]
         [StringLength(20, MinimumLength = 1)]
         public string SupplierCode { get; set; } = string.Empty;

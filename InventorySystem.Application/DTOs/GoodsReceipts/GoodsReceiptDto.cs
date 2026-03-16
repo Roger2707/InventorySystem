@@ -11,6 +11,8 @@ public class GoodsReceiptDto
     public ReceiptStatus Status { get; set; }
     public DateTime ReceiptDate { get; set; }
 
+    public byte[]? RowVersion { get; set; }
+
     public List<GoodsReceiptLineDto> Lines { get; set; } = new();
 }
 
