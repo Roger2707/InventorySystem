@@ -168,7 +168,7 @@ namespace InventorySystem.Application.Services
                 catch (DbUpdateConcurrencyException)
                 {
                     await _unitOfWork.RollbackTransactionAsync(cancellationToken);
-                    return Result<SalesOrderDto>.Failure("SalesOrder đã được cập nhật bởi người dùng khác. Vui lòng tải lại dữ liệu và thử lại.");
+                    return Result<SalesOrderDto>.Failure("SalesOrder is updated by other users, please update again !");
                 }
 
                 var dto = MapToDto(salesOrderExist);
@@ -303,7 +303,7 @@ namespace InventorySystem.Application.Services
                     await _unitOfWork.RollbackTransactionAsync(cancellationToken);
 
                     if (attempt == maxAttempts)
-                        return Result.Failure("Tồn kho hoặc SalesOrder đã được thay đổi bởi giao dịch khác trong lúc confirm. Vui lòng thử confirm lại.");
+                        return Result.Failure("Inventory Layer OR SalesOrder is updated by another transaction, please confirm again !");
                 }
                 catch (Exception ex)
                 {
@@ -312,7 +312,7 @@ namespace InventorySystem.Application.Services
                 }
             }
 
-            return Result.Failure("Tồn kho hoặc SalesOrder đã được thay đổi bởi giao dịch khác trong lúc confirm. Vui lòng thử confirm lại.");
+            return Result.Failure("Inventory Layer OR SalesOrder is updated by another transaction, please confirm again !");
         }
 
         #region Helpers

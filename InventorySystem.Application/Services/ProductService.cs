@@ -132,7 +132,7 @@ namespace InventorySystem.Application.Services
             }
             catch (DbUpdateConcurrencyException)
             {
-                return Result<ProductDto>.Failure("Product đã được cập nhật bởi người dùng khác. Vui lòng tải lại dữ liệu và thử lại.");
+                return Result<ProductDto>.Failure("Product is updated by other users, please update again !");
             }
 
             var productDto = MapToDto(existedProduct);

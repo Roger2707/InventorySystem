@@ -1,3 +1,4 @@
+using InventorySystem.Application.Interfaces.Cache;
 using InventorySystem.Application.Interfaces.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
@@ -10,15 +11,19 @@ namespace InventorySystem.WebApi.Middleware;
 public class JwtAuthenticationHandler : AuthenticationHandler<AuthenticationSchemeOptions>
 {
     private readonly IJwtService _jwtService;
+    private readonly ICacheService _cacheService;
 
     public JwtAuthenticationHandler(
-        IOptionsMonitor<AuthenticationSchemeOptions> options,
-        ILoggerFactory logger,
-        UrlEncoder encoder,
-        IJwtService jwtService)
-        : base(options, logger, encoder)
+        IOptionsMonitor<AuthenticationSchemeOptions> options
+        , ILoggerFactory logger
+        , UrlEncoder encoder
+        , IJwtService jwtService
+        , ICacheService cacheService
+    )
+    : base(options, logger, encoder)
     {
         _jwtService = jwtService;
+        _cacheService = cacheService;
     }
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
@@ -60,7 +65,11 @@ public class JwtAuthenticationHandler : AuthenticationHandler<AuthenticationSche
                 return AuthenticateResult.Fail("Invalid token");
             }
 
-            // 5. Create authentication ticket
+            // 5. Check Is User in blacklist
+            var userId = principal.FindFirst(ClaimTypes.NameIdentifier);
+            var isExist = await _cacheService.ExistsAsync
+
+            // 6. Create authentication ticket
             var ticket = new AuthenticationTicket(principal, Scheme.Name);
 
             Logger.LogDebug("Token validated successfully for user: {UserId}",

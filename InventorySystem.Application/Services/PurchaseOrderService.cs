@@ -117,7 +117,7 @@ public class PurchaseOrderService : IPurchaseOrderService
         }
         catch (DbUpdateConcurrencyException)
         {
-            return Result<PurchaseOrderDto>.Failure("PurchaseOrder đã được cập nhật bởi người dùng khác. Vui lòng tải lại dữ liệu và thử lại.");
+            return Result<PurchaseOrderDto>.Failure("PurchaseOrder is updated by other users, please update again !");
         }
 
         return Result<PurchaseOrderDto>.Success(MapToDto(exist));
@@ -125,7 +125,7 @@ public class PurchaseOrderService : IPurchaseOrderService
 
     public async Task<Result<PurchaseOrderDto>> ApprovePurchaseOrderAsync(int id, CancellationToken cancellationToken = default)
     {
-        var po = await _unitOfWork.PurchaseOrderRepository.GetByIdAsync(id, cancellationToken);
+        var po = await _unitOfWork.PurchaseOrderRepository.GetWithLinesAsync(id, cancellationToken);
         if (po == null)
             return Result<PurchaseOrderDto>.Failure($"PurchaseOrder with ID {id} not found.");
 
@@ -140,7 +140,7 @@ public class PurchaseOrderService : IPurchaseOrderService
         }
         catch (DbUpdateConcurrencyException)
         {
-            return Result<PurchaseOrderDto>.Failure("PurchaseOrder đã được thay đổi bởi giao dịch khác. Vui lòng tải lại và thử lại.");
+            return Result<PurchaseOrderDto>.Failure("PurchaseOrder is updated by other users, please update again !");
         }
 
         var dto = MapToDto(po);

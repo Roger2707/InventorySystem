@@ -1,4 +1,5 @@
 using InventorySystem.Application.Interfaces;
+using InventorySystem.Application.Interfaces.Cache;
 using InventorySystem.Application.Interfaces.Generators;
 using InventorySystem.Application.Interfaces.Queries;
 using InventorySystem.Application.Interfaces.Repositories;
@@ -17,6 +18,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
+using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);    
 
@@ -109,6 +111,16 @@ builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<IJwtService, JwtService>();
 
 builder.Services.AddScoped<SeederService>();
+
+#region Redis Cache
+
+var redisConnectionString = builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379";
+builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+    ConnectionMultiplexer.Connect(redisConnectionString));
+
+builder.Services.AddScoped<ICacheService, RedisCacheService>();
+
+#endregion
 
 builder.Services.AddScoped<InventorySystem.Application.Interfaces.IAuthenticationService, InventorySystem.Application.Services.AuthenticationService>();
 
