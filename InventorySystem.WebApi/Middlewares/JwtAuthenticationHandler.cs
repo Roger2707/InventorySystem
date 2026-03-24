@@ -66,13 +66,23 @@ public class JwtAuthenticationHandler : AuthenticationHandler<AuthenticationSche
             }
 
             // 5. Check Is User in blacklist
-            var userId = principal.FindFirst(ClaimTypes.NameIdentifier);
-            var isExist = await _cacheService.ExistsAsync
+            var userId = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrWhiteSpace(userId))
+                return AuthenticateResult.Fail("User ID not found in token");
+
+            // Key format: "blacklist:user:{userId}"
+            var blacklistKey = $"blacklist:user:{userId}";
+            var isBlacklisted = await _cacheService.ExistsAsync(blacklistKey);
+            if (isBlacklisted)
+            {
+                Logger.LogWarning($"User {userId} is blacklisted and attempted to authenticate.");
+                return AuthenticateResult.Fail("User is blacklisted.");
+            }
 
             // 6. Create authentication ticket
             var ticket = new AuthenticationTicket(principal, Scheme.Name);
 
-            Logger.LogDebug("Token validated successfully for user: {UserId}",
+            Logger.LogDebug($"Token validated successfully for user: {userId}",
                 principal.FindFirst(ClaimTypes.NameIdentifier)?.Value);
 
             return AuthenticateResult.Success(ticket);

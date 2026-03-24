@@ -1,12 +1,14 @@
 using InventorySystem.Application.DTOs.Reports;
 using InventorySystem.Application.DTOs.TrialBalances;
 using InventorySystem.Application.Interfaces.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace InventorySystem.WebApi.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class ReportsController : ControllerBase
 {
     private readonly IReportService _reportService;
