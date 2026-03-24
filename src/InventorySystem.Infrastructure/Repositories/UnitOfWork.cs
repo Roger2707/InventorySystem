@@ -27,6 +27,7 @@ public class UnitOfWork : IUnitOfWork
     private IInventoryCostLayerRepository? _inventoryCostLayerRepository;
     private ISupplierProductPriceRepository? _supplierProductPriceRepository;
     private ISalesOrderRepository? _salesOrderRepository;
+    private IBasketRepository? _basketRepository;
     private IDeliveryRepository? _deliveryRepository;
     private IInventoryReservationRepository? _inventoryReservationRepository;
     private IInvoiceRepository? _invoiceRepository;
@@ -243,6 +244,18 @@ public class UnitOfWork : IUnitOfWork
                 _salesOrderRepository = new SalesOrderRepository(_context);
             }
             return _salesOrderRepository;
+        }
+    }
+
+    public IBasketRepository BasketRepository
+    {
+        get
+        {
+            if (_basketRepository == null)
+            {
+                _basketRepository = new BasketRepository(_context);
+            }
+            return _basketRepository;
         }
     }
 

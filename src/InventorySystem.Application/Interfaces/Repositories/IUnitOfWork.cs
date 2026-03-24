@@ -19,6 +19,7 @@ public interface IUnitOfWork : IDisposable
     IInventoryCostLayerRepository InventoryCostLayerRepository { get; }
     ISupplierProductPriceRepository SupplierProductPriceRepository { get; }
     ISalesOrderRepository SalesOrderRepository { get; }
+    IBasketRepository BasketRepository { get; }
     IDeliveryRepository DeliveryRepository { get; }
     IInventoryReservationRepository InventoryReservationRepository { get; }
     IInvoiceRepository InvoiceRepository { get; }

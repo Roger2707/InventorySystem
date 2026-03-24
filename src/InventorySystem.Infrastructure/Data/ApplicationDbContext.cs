@@ -8,6 +8,7 @@ using InventorySystem.Domain.Entities.Inventory;
 using InventorySystem.Domain.Entities.PurchaseOrder;
 using InventorySystem.Domain.Entities.StockTransfer;
 using InventorySystem.Domain.Entities.SalesOrder;
+using InventorySystem.Domain.Entities.Baskets;
 using InventorySystem.Domain.Entities.Delivery;
 using InventorySystem.Domain.Entities.Invoice;
 using InventorySystem.Domain.Entities.Accounts;
@@ -59,6 +60,9 @@ public class ApplicationDbContext : DbContext
 
     // Sales Order
     public DbSet<SalesOrder> SalesOrders { get; set; }
+
+    // Basket
+    public DbSet<Basket> Baskets { get; set; }
 
     // Delivery
     public DbSet<Delivery> Deliveries { get; set; }
