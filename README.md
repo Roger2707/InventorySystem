@@ -1,19 +1,42 @@
 # Inventory System Backend (Clean Architecture)
 
-Backend e-commerce/inventory trên ASP.NET Core Web API theo Clean Architecture. Hệ thống dùng **EF Core cho write model (CRUD/transaction)** và **Dapper cho read model (query/report phức tạp)**.
+Backend ERP Inventory + ECommerce trên ASP.NET Core Web API theo Clean Architecture.
 
 ## Cấu trúc sau khi refactor
 
 ```text
 InventorySystem/
 ├─ src/
+│  ├─ SharedKernel/                   # BaseEntity, Result<T>, Result
 │  ├─ InventorySystem.Domain/
 │  ├─ InventorySystem.Application/
 │  ├─ InventorySystem.Infrastructure/
-│  └─ InventorySystem.WebApi/
+│  ├─ InventorySystem.WebApi/
+│  ├─ ECommerce.Domain/
+│  ├─ ECommerce.Application/
+│  ├─ ECommerce.Infrastructure/
+│  └─ ECommerce.WebApi/
 ├─ InventorySystem.sln
 └─ README.md
 ```
+
+## Bounded contexts
+
+### Inventory (ERP)
+- Giữ nguyên kiến trúc cũ:
+  - `InventorySystem.Domain`
+  - `InventorySystem.Application`
+  - `InventorySystem.Infrastructure`
+  - `InventorySystem.WebApi`
+- Không chứa Basket nữa.
+
+### ECommerce
+- Tách project độc lập theo cùng clean architecture:
+  - `ECommerce.Domain`
+  - `ECommerce.Application`
+  - `ECommerce.Infrastructure`
+  - `ECommerce.WebApi`
+- Module `Basket` nằm hoàn toàn trong ECommerce.
 
 ## Vai trò từng layer
 
@@ -54,6 +77,7 @@ Infrastructure -> Application -> Domain
 dotnet restore
 dotnet build InventorySystem.sln
 dotnet run --project src/InventorySystem.WebApi
+dotnet run --project src/ECommerce.WebApi
 ```
 
 Swagger UI: `/swagger`

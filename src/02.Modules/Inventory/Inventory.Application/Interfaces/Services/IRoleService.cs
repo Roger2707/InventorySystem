@@ -1,0 +1,18 @@
+using Inventory.Application.DTOs.Identity;
+
+using SharedKernel;
+
+namespace Inventory.Application.Interfaces;
+
+public interface IRoleService
+{
+    Task<Result<RoleDto>> GetByIdAsync(int id, CancellationToken cancellationToken = default);
+    Task<Result<IEnumerable<RoleDto>>> GetAllAsync(CancellationToken cancellationToken = default);
+    Task<Result<RoleDto>> CreateAsync(CreateRoleDto createDto, CancellationToken cancellationToken = default);
+    Task<Result<RoleDto>> UpdateAsync(int id, UpdateRoleDto updateDto, CancellationToken cancellationToken = default);
+    Task<Result> DeleteAsync(int id, CancellationToken cancellationToken = default);
+}
+
+
+
+
